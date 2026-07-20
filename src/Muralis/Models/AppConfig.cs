@@ -1,0 +1,26 @@
+namespace Muralis.Models;
+
+/// <summary>
+/// Racine de la configuration persistée dans
+/// <c>%LocalAppData%\Muralis\config.json</c>.
+/// </summary>
+public class AppConfig
+{
+    /// <summary>Version du schéma de config, pour migrations futures.</summary>
+    public int Version { get; set; } = 1;
+
+    /// <summary>
+    /// Vrai : un même fond (voir <see cref="UnifiedConfig"/>) s'applique à tous les écrans.
+    /// Faux : chaque écran a sa propre config (voir <see cref="Screens"/>).
+    /// </summary>
+    public bool Unified { get; set; }
+
+    /// <summary>Config commune utilisée quand <see cref="Unified"/> est vrai.</summary>
+    public ScreenConfig UnifiedConfig { get; set; } = new();
+
+    public List<ScreenConfig> Screens { get; set; } = [];
+
+    /// <summary>Renvoie la config d'un écran par device path, ou <c>null</c> si absente.</summary>
+    public ScreenConfig? FindScreen(string deviceId) =>
+        Screens.FirstOrDefault(s => s.DeviceId == deviceId);
+}

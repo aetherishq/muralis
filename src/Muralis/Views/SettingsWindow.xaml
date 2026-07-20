@@ -1,0 +1,111 @@
+<ui:FluentWindow
+    x:Class="Muralis.Views.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Muralis.ViewModels"
+    Title="Muralis"
+    Width="640"
+    MinWidth="480"
+    MinHeight="320"
+    SizeToContent="Height"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowStartupLocation="CenterScreen">
+
+    <ui:FluentWindow.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- Éditeur d'une cible (un écran, ou tous les écrans en mode unifié).
+             ui:Card (et non ui:CardControl, qui est un ButtonBase cliquable et intercepterait
+             les clics des contrôles internes). -->
+        <DataTemplate x:Key="ScreenEditor" DataType="{x:Type vm:ScreenSettingsViewModel}">
+            <ui:Card Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayLabel}" />
+                    <TextBlock
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{Binding ResolutionLabel}" />
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox
+                            Grid.Column="0"
+                            IsReadOnly="True"
+                            PlaceholderText="Aucune image sélectionnée"
+                            Text="{Binding ImagePath, Mode=OneWay}" />
+                        <ui:Button
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            Content="Parcourir…"
+                            Command="{Binding BrowseCommand}" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Text="Mode d'affichage :" />
+                        <ComboBox
+                            Width="160"
+                            ItemsSource="{Binding AvailableModes}"
+                            SelectedItem="{Binding DisplayMode}" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+        </DataTemplate>
+    </ui:FluentWindow.Resources>
+
+    <DockPanel>
+        <ui:TitleBar
+            DockPanel.Dock="Top"
+            Title="Muralis — Fonds d'écran"
+            ShowMaximize="False" />
+
+        <!-- Barre d'action bas -->
+        <Border
+            DockPanel.Dock="Bottom"
+            Padding="16,10"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            <Grid>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{Binding StatusMessage}" />
+                <ui:Button
+                    HorizontalAlignment="Right"
+                    Appearance="Primary"
+                    Content="Appliquer"
+                    Icon="{ui:SymbolIcon Checkmark24}"
+                    Command="{Binding ApplyCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- Contenu : bascule unifié / par écran -->
+        <ScrollViewer Padding="16" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <CheckBox
+                    Margin="0,0,0,12"
+                    Content="Utiliser le même fond pour tous les écrans"
+                    IsChecked="{Binding UnifiedMode}" />
+
+                <!-- Mode unifié : une seule cible -->
+                <ContentControl
+                    Content="{Binding UnifiedScreen}"
+                    ContentTemplate="{StaticResource ScreenEditor}"
+                    Visibility="{Binding ShowUnified, Converter={StaticResource BoolToVis}}" />
+
+                <!-- Mode séparé : une carte par écran -->
+                <ItemsControl
+                    ItemsSource="{Binding Screens}"
+                    ItemTemplate="{StaticResource ScreenEditor}"
+                    Visibility="{Binding ShowPerScreen, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</ui:FluentWindow>
