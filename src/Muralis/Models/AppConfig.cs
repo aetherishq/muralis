@@ -9,6 +9,9 @@ public class AppConfig
     /// <summary>Version du schéma de config, pour migrations futures.</summary>
     public int Version { get; set; } = 1;
 
+    /// <summary>Thème de l'UI (le démarrage Windows, lui, vit uniquement dans le registre).</summary>
+    public ThemePreference Theme { get; set; } = ThemePreference.System;
+
     /// <summary>
     /// Vrai : un même fond (voir <see cref="UnifiedConfig"/>) s'applique à tous les écrans.
     /// Faux : chaque écran a sa propre config (voir <see cref="Screens"/>).
