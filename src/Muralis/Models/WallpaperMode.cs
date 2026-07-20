@@ -1,8 +1,8 @@
 namespace Muralis.Models;
 
 /// <summary>
-/// Mode d'alimentation d'un écran en fond d'écran.
-/// M2 n'utilise que <see cref="Fixed"/> ; <see cref="Slideshow"/> arrive en M3.
+/// Mode d'alimentation d'un écran en fond d'écran : image fixe, ou diaporama
+/// (dossier local en M3, sources web en M4 via <c>SourceType</c>).
 /// </summary>
 public enum WallpaperMode
 {

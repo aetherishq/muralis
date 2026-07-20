@@ -5,10 +5,12 @@ using Muralis.Services.Interop;
 namespace Muralis.Services;
 
 /// <summary>
-/// Applique la configuration aux moniteurs via <c>IDesktopWallpaper</c>.
-/// Chaque écran en mode <see cref="WallpaperMode.Fixed"/> reçoit son image, pré-composée à sa
-/// résolution pour honorer un mode d'affichage indépendant (voir <see cref="WallpaperComposer"/>).
-/// Le mode <see cref="DesktopWallpaperPosition.Span"/> est délégué nativement à Windows.
+/// Applique les fonds d'écran via <c>IDesktopWallpaper</c>. Les images sont pré-composées à la
+/// résolution du moniteur pour honorer un mode d'affichage indépendant par écran (voir
+/// <see cref="WallpaperComposer"/>) ; <see cref="DesktopWallpaperPosition.Span"/> est délégué
+/// nativement à Windows. Les écrans en mode <see cref="WallpaperMode.Slideshow"/> ne sont pas
+/// traités ici : c'est <see cref="SlideshowService"/> qui rappelle
+/// <see cref="ApplyMonitor"/> / <see cref="ApplyAllMonitors"/> à chaque changement d'image.
 /// </summary>
 public class WallpaperService
 {
@@ -19,54 +21,58 @@ public class WallpaperService
         _composer = composer;
     }
 
+    /// <summary>Applique les cibles en mode <see cref="WallpaperMode.Fixed"/> de la config.</summary>
     public void Apply(AppConfig config, IReadOnlyList<MonitorInfo> monitors)
     {
-        var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
-
         if (config.Unified)
         {
-            ApplyUnified(wallpaper, config.UnifiedConfig, monitors);
+            var unified = config.UnifiedConfig;
+            if (unified.Mode == WallpaperMode.Fixed && HasImage(unified))
+                ApplyAllMonitors(unified.SourcePath, unified.DisplayMode, monitors);
             return;
         }
-
-        // Config par écran : une image par moniteur, pré-composée à sa taille pixel.
-        // Position globale neutre : l'image étant déjà au bon format, Fill la rend 1:1.
-        wallpaper.SetPosition(DesktopWallpaperPosition.Fill);
 
         foreach (var monitor in monitors)
         {
             var screen = config.FindScreen(monitor.DeviceId);
-            if (screen is null || screen.Mode != WallpaperMode.Fixed || !HasImage(screen))
-                continue;
-
-            string composed = _composer.Compose(
-                screen.SourcePath, monitor.Width, monitor.Height, screen.DisplayMode);
-            wallpaper.SetWallpaper(monitor.DeviceId, composed);
+            if (screen is { Mode: WallpaperMode.Fixed } && HasImage(screen))
+                ApplyMonitor(monitor, screen.SourcePath, screen.DisplayMode);
         }
     }
 
     /// <summary>
-    /// Applique un même fond à tous les écrans. En <see cref="DesktopWallpaperPosition.Span"/>,
-    /// Windows étale nativement l'image sur toute la surface ; sinon l'image est composée à la
+    /// Pose une image sur un moniteur donné, pré-composée à sa taille pixel.
+    /// Position globale neutre : l'image étant déjà au bon format, Fill la rend 1:1.
+    /// </summary>
+    public void ApplyMonitor(MonitorInfo monitor, string imagePath, DesktopWallpaperPosition displayMode)
+    {
+        var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
+        wallpaper.SetPosition(DesktopWallpaperPosition.Fill);
+
+        string composed = _composer.Compose(imagePath, monitor.Width, monitor.Height, displayMode);
+        wallpaper.SetWallpaper(monitor.DeviceId, composed);
+    }
+
+    /// <summary>
+    /// Pose la même image sur tous les écrans. En <see cref="DesktopWallpaperPosition.Span"/>,
+    /// Windows étale nativement l'image sur toute la surface ; sinon elle est composée à la
     /// résolution de chaque moniteur puis assignée individuellement.
     /// </summary>
-    private void ApplyUnified(IDesktopWallpaper wallpaper, ScreenConfig unified, IReadOnlyList<MonitorInfo> monitors)
+    public void ApplyAllMonitors(string imagePath, DesktopWallpaperPosition displayMode, IReadOnlyList<MonitorInfo> monitors)
     {
-        if (!HasImage(unified))
-            return;
+        var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
 
-        if (unified.DisplayMode == DesktopWallpaperPosition.Span)
+        if (displayMode == DesktopWallpaperPosition.Span)
         {
             wallpaper.SetPosition(DesktopWallpaperPosition.Span);
-            wallpaper.SetWallpaper(null, unified.SourcePath); // null = tous les moniteurs
+            wallpaper.SetWallpaper(null, imagePath); // null = tous les moniteurs
             return;
         }
 
         wallpaper.SetPosition(DesktopWallpaperPosition.Fill);
         foreach (var monitor in monitors)
         {
-            string composed = _composer.Compose(
-                unified.SourcePath, monitor.Width, monitor.Height, unified.DisplayMode);
+            string composed = _composer.Compose(imagePath, monitor.Width, monitor.Height, displayMode);
             wallpaper.SetWallpaper(monitor.DeviceId, composed);
         }
     }

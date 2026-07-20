@@ -20,5 +20,8 @@ public class ScreenConfig
 
     public TimeSpan SlideshowInterval { get; set; } = TimeSpan.FromMinutes(30);
 
+    /// <summary>Diaporama : vrai = ordre aléatoire, faux = ordre alphabétique du dossier.</summary>
+    public bool Shuffle { get; set; } = true;
+
     public DesktopWallpaperPosition DisplayMode { get; set; } = DesktopWallpaperPosition.Fill;
 }
