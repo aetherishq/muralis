@@ -5,10 +5,9 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:vm="clr-namespace:Muralis.ViewModels"
     Title="Muralis"
-    Width="640"
-    MinWidth="480"
-    MinHeight="320"
-    SizeToContent="Height"
+    Width="700"
+    Height="640"
+    ResizeMode="CanMinimize"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica"
     WindowStartupLocation="CenterScreen">
@@ -16,19 +15,67 @@
     <ui:FluentWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- Éditeur d'une cible (un écran, ou tous les écrans en mode unifié).
-             ui:Card (et non ui:CardControl, qui est un ButtonBase cliquable et intercepterait
-             les clics des contrôles internes). -->
-        <DataTemplate x:Key="ScreenEditor" DataType="{x:Type vm:ScreenSettingsViewModel}">
-            <ui:Card Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayLabel}" />
-                    <TextBlock
-                        Margin="0,0,0,10"
-                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="{Binding ResolutionLabel}" />
+        <!-- Intitulé de section discret (SOURCE, AFFICHAGE, …) -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
 
-                    <Grid Margin="0,0,0,8">
+        <!-- Onglet « pivot » : barre d'accent sous l'onglet sélectionné, fond au survol. -->
+        <Style x:Key="ScreenTabItem" TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border
+                            x:Name="Root"
+                            Margin="0,0,4,8"
+                            Padding="16,8,16,6"
+                            Background="Transparent"
+                            CornerRadius="6">
+                            <StackPanel>
+                                <ContentPresenter ContentSource="Header" />
+                                <Rectangle
+                                    x:Name="Indicator"
+                                    Height="3"
+                                    Margin="0,6,0,0"
+                                    RadiusX="1.5"
+                                    RadiusY="1.5"
+                                    Fill="Transparent" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+                                <Setter TargetName="Indicator" Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Éditeur d'une cible (un écran, ou tous les écrans en mode unifié), pleine largeur.
+             L'identité de la cible est portée par l'onglet (mode séparé) ou par la checkbox
+             « même fond » (mode unifié), pas par le template. -->
+        <DataTemplate x:Key="ScreenEditor" DataType="{x:Type vm:ScreenSettingsViewModel}">
+            <StackPanel Margin="0,12,0,0">
+                <TextBlock Style="{StaticResource SectionLabel}" Text="SOURCE" />
+
+                <CheckBox
+                    Margin="0,0,0,12"
+                    Content="Diaporama (dossier d'images)"
+                    IsChecked="{Binding IsSlideshow}" />
+
+                <!-- Image fixe -->
+                <StackPanel Visibility="{Binding ShowFixed, Converter={StaticResource BoolToVis}}">
+                    <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -45,33 +92,123 @@
                             Command="{Binding BrowseCommand}" />
                     </Grid>
 
-                    <StackPanel Orientation="Horizontal">
+                    <!-- Aperçu au ratio de l'écran -->
+                    <Border
+                        Width="{Binding PreviewWidth}"
+                        Height="{Binding PreviewHeight}"
+                        Margin="0,0,0,12"
+                        HorizontalAlignment="Left"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                        ClipToBounds="True"
+                        Visibility="{Binding ShowFixedPreview, Converter={StaticResource BoolToVis}}">
+                        <Image Source="{Binding PreviewImage}" Stretch="UniformToFill" />
+                    </Border>
+                </StackPanel>
+
+                <!-- Diaporama : dossier + aperçu + intervalle/ordre -->
+                <StackPanel Visibility="{Binding ShowSlideshow, Converter={StaticResource BoolToVis}}">
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox
+                            Grid.Column="0"
+                            IsReadOnly="True"
+                            PlaceholderText="Aucun dossier sélectionné"
+                            Text="{Binding FolderPath, Mode=OneWay}" />
+                        <ui:Button
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            Content="Parcourir…"
+                            Command="{Binding BrowseFolderCommand}" />
+                    </Grid>
+
+                    <!-- Aperçu : 4 miniatures au ratio de l'écran — grille 2×2 en paysage,
+                         rangée de 4 en portrait. -->
+                    <Border
+                        Width="{Binding SlideshowPreviewWidth}"
+                        Height="{Binding PreviewHeight}"
+                        Margin="0,0,0,12"
+                        HorizontalAlignment="Left"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                        ClipToBounds="True"
+                        Visibility="{Binding ShowSlideshowPreview, Converter={StaticResource BoolToVis}}">
+                        <ItemsControl ItemsSource="{Binding PreviewThumbnails}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="{Binding MosaicColumns}" Rows="{Binding MosaicRows}" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="1" ClipToBounds="True">
+                                        <Image Source="{Binding}" Stretch="UniformToFill" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+
+                    <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
                         <TextBlock
                             VerticalAlignment="Center"
                             Margin="0,0,8,0"
-                            Text="Mode d'affichage :" />
+                            Text="Intervalle :" />
+                        <ui:NumberBox
+                            Width="110"
+                            Minimum="1"
+                            Maximum="86400"
+                            ClearButtonEnabled="False"
+                            SpinButtonPlacementMode="Compact"
+                            Value="{Binding IntervalValue}" />
                         <ComboBox
-                            Width="160"
-                            ItemsSource="{Binding AvailableModes}"
-                            SelectedItem="{Binding DisplayMode}" />
+                            Width="120"
+                            Margin="8,0,0,0"
+                            ItemsSource="{Binding IntervalUnits}"
+                            SelectedItem="{Binding IntervalUnit}" />
+                        <CheckBox
+                            Margin="24,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="Ordre aléatoire"
+                            IsChecked="{Binding Shuffle}" />
                     </StackPanel>
                 </StackPanel>
-            </ui:Card>
+
+                <TextBlock
+                    Margin="0,8,0,8"
+                    Style="{StaticResource SectionLabel}"
+                    Text="AFFICHAGE" />
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"
+                        Text="Mode d'affichage :" />
+                    <ComboBox
+                        Width="160"
+                        ItemsSource="{Binding AvailableModes}"
+                        SelectedItem="{Binding DisplayMode}" />
+                </StackPanel>
+            </StackPanel>
         </DataTemplate>
     </ui:FluentWindow.Resources>
 
     <DockPanel>
         <ui:TitleBar
             DockPanel.Dock="Top"
-            Title="Muralis — Fonds d'écran"
+            Title="Muralis"
             ShowMaximize="False" />
 
-        <!-- Barre d'action bas -->
+        <!-- Barre d'action bas (page fonds d'écran uniquement) -->
         <Border
             DockPanel.Dock="Bottom"
             Padding="16,10"
             BorderThickness="0,1,0,0"
-            BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+            Visibility="{Binding ShowWallpaperPage, Converter={StaticResource BoolToVis}}">
             <Grid>
                 <TextBlock
                     VerticalAlignment="Center"
@@ -86,26 +223,108 @@
             </Grid>
         </Border>
 
-        <!-- Contenu : bascule unifié / par écran -->
-        <ScrollViewer Padding="16" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
+        <Grid Margin="16,8,16,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- En-tête : hamburger + titre de page -->
+            <StackPanel
+                Grid.Row="0"
+                Margin="0,0,0,16"
+                Orientation="Horizontal">
+                <ui:Button
+                    Padding="8"
+                    Appearance="Secondary"
+                    Icon="{ui:SymbolIcon LineHorizontal320}"
+                    ToolTip="Menu"
+                    Click="OnHamburgerClick">
+                    <ui:Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem
+                                Header="Fonds d'écran"
+                                Command="{Binding PlacementTarget.DataContext.ShowWallpapersCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                            <MenuItem
+                                Header="Paramètres"
+                                Command="{Binding PlacementTarget.DataContext.ShowApplicationSettingsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        </ContextMenu>
+                    </ui:Button.ContextMenu>
+                </ui:Button>
+                <ui:TextBlock
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    FontTypography="Subtitle"
+                    Text="{Binding PageTitle}" />
+            </StackPanel>
+
+            <!-- Page fonds d'écran -->
+            <Grid Grid.Row="1" Visibility="{Binding ShowWallpaperPage, Converter={StaticResource BoolToVis}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
                 <CheckBox
+                    Grid.Row="0"
                     Margin="0,0,0,12"
                     Content="Utiliser le même fond pour tous les écrans"
                     IsChecked="{Binding UnifiedMode}" />
 
                 <!-- Mode unifié : une seule cible -->
                 <ContentControl
+                    Grid.Row="1"
+                    VerticalAlignment="Top"
                     Content="{Binding UnifiedScreen}"
                     ContentTemplate="{StaticResource ScreenEditor}"
                     Visibility="{Binding ShowUnified, Converter={StaticResource BoolToVis}}" />
 
-                <!-- Mode séparé : une carte par écran -->
-                <ItemsControl
+                <!-- Mode séparé : un onglet par écran -->
+                <TabControl
+                    Grid.Row="1"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ItemContainerStyle="{StaticResource ScreenTabItem}"
                     ItemsSource="{Binding Screens}"
-                    ItemTemplate="{StaticResource ScreenEditor}"
-                    Visibility="{Binding ShowPerScreen, Converter={StaticResource BoolToVis}}" />
+                    ContentTemplate="{StaticResource ScreenEditor}"
+                    Visibility="{Binding ShowPerScreen, Converter={StaticResource BoolToVis}}">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ScreenSettingsViewModel}">
+                            <StackPanel>
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding DisplayLabel}" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontSize="11"
+                                    Text="{Binding ResolutionLabel}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                </TabControl>
+            </Grid>
+
+            <!-- Page paramètres de l'application -->
+            <StackPanel Grid.Row="1" Visibility="{Binding ShowAppSettings, Converter={StaticResource BoolToVis}}">
+                <TextBlock Style="{StaticResource SectionLabel}" Text="APPLICATION" />
+                <CheckBox
+                    Margin="0,0,0,20"
+                    Content="Lancer au démarrage de Windows"
+                    IsChecked="{Binding AppSettings.StartWithWindows}" />
+
+                <TextBlock Style="{StaticResource SectionLabel}" Text="APPARENCE" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"
+                        Text="Thème :" />
+                    <ComboBox
+                        Width="200"
+                        ItemsSource="{Binding AppSettings.ThemeOptions}"
+                        SelectedItem="{Binding AppSettings.SelectedTheme}" />
+                </StackPanel>
             </StackPanel>
-        </ScrollViewer>
+        </Grid>
     </DockPanel>
 </ui:FluentWindow>

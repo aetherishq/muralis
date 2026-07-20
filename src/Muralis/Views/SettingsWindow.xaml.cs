@@ -15,10 +15,17 @@ public partial class SettingsWindow : FluentWindow
     {
         InitializeComponent();
         DataContext = viewModel;
+    }
 
-        // Plafonne la hauteur auto (SizeToContent) à la zone de travail : au-delà (beaucoup
-        // d'écrans), la fenêtre ne déborde pas et le ScrollViewer reprend le relais.
-        MaxHeight = SystemParameters.WorkArea.Height;
+    /// <summary>Ouvre le menu de navigation (le ContextMenu du bouton hamburger) au clic gauche.</summary>
+    private void OnHamburgerClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: { } menu } element)
+        {
+            menu.PlacementTarget = element;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)

@@ -16,19 +16,49 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ConfigService _configService;
     private readonly ScreenService _screenService;
     private readonly WallpaperService _wallpaperService;
+    private readonly SlideshowService _slideshowService;
 
     private IReadOnlyList<MonitorInfo> _monitors = [];
 
     public SettingsViewModel(
         ConfigService configService,
         ScreenService screenService,
-        WallpaperService wallpaperService)
+        WallpaperService wallpaperService,
+        SlideshowService slideshowService,
+        AppSettingsViewModel appSettings)
     {
         _configService = configService;
         _screenService = screenService;
         _wallpaperService = wallpaperService;
+        _slideshowService = slideshowService;
+        AppSettings = appSettings;
         Load();
     }
+
+    /// <summary>Paramètres d'application (page du menu hamburger).</summary>
+    public AppSettingsViewModel AppSettings { get; }
+
+    /// <summary>Page affichée : fonds d'écran (défaut) ou paramètres de l'application.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowWallpaperPage), nameof(PageTitle))]
+    private bool showAppSettings;
+
+    public bool ShowWallpaperPage => !ShowAppSettings;
+
+    public string PageTitle => ShowAppSettings ? "Paramètres" : "Fonds d'écran";
+
+    partial void OnShowAppSettingsChanged(bool value)
+    {
+        // L'état « démarrage Windows » peut avoir changé hors de l'app : relire le registre.
+        if (value)
+            AppSettings.Refresh();
+    }
+
+    [RelayCommand]
+    private void ShowWallpapers() => ShowAppSettings = false;
+
+    [RelayCommand]
+    private void ShowApplicationSettings() => ShowAppSettings = true;
 
     /// <summary>Configs par écran (mode séparé).</summary>
     public ObservableCollection<ScreenSettingsViewModel> Screens { get; } = [];
@@ -72,17 +102,19 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void Apply()
     {
-        var config = new AppConfig
-        {
-            Unified = UnifiedMode,
-            UnifiedConfig = UnifiedScreen?.ToConfig() ?? new ScreenConfig(),
-            Screens = Screens.Select(s => s.ToConfig()).ToList(),
-        };
+        // Repart de la config persistée pour ne pas écraser les réglages hors page
+        // wallpaper (thème notamment).
+        var config = _configService.Load();
+        config.Unified = UnifiedMode;
+        config.UnifiedConfig = UnifiedScreen?.ToConfig() ?? new ScreenConfig();
+        config.Screens = Screens.Select(s => s.ToConfig()).ToList();
 
         try
         {
             _configService.Save(config);
             _wallpaperService.Apply(config, _monitors);
+            // Relance les diaporamas selon la nouvelle config (première image immédiate).
+            _slideshowService.Restart(config, _monitors);
             StatusMessage = UnifiedMode
                 ? $"Même fond appliqué à {_monitors.Count} écran(s)."
                 : $"Appliqué à {_monitors.Count} écran(s).";

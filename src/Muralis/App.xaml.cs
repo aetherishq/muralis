@@ -22,6 +22,9 @@ public partial class App : Application
     private TaskbarIcon? _tray;
     private SettingsWindow? _settingsWindow;
     private SettingsViewModel? _settingsViewModel;
+    private SlideshowService? _slideshowService;
+    private ConfigService? _configService;
+    private ThemeService? _themeService;
 
     /// <summary>
     /// Vrai pendant l'arrêt volontaire (menu « Quitter »). Permet à la fenêtre de settings de se
@@ -33,17 +36,25 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Thème Fluent (Mica, sombre).
-        ApplicationThemeManager.Apply(ApplicationTheme.Dark, WindowBackdropType.Mica);
-
         // Injection manuelle des services (pas de conteneur DI pour une V1, cf. AGENTS.md).
         var configService = new ConfigService();
+        _configService = configService;
         var screenService = new ScreenService();
         var composer = new WallpaperComposer(configService);
         var wallpaperService = new WallpaperService(composer);
-        _settingsViewModel = new SettingsViewModel(configService, screenService, wallpaperService);
+        _slideshowService = new SlideshowService(wallpaperService);
+        _themeService = new ThemeService();
+
+        // Thème depuis la config (le watcher système sera branché à la création de la fenêtre).
+        _themeService.Apply(configService.Load().Theme, window: null);
+
+        var appSettings = new AppSettingsViewModel(configService, _themeService, () => _settingsWindow);
+        _settingsViewModel = new SettingsViewModel(configService, screenService, wallpaperService, _slideshowService, appSettings);
 
         _tray = CreateTrayIcon(configService.DataDirectory);
+
+        // Reprend les diaporamas persistés (les fonds fixes, eux, sont conservés par Windows).
+        _slideshowService.Restart(configService.Load(), screenService.GetMonitors());
 
         // Sans --minimized (double-clic sur le raccourci) : ouvrir directement les paramètres.
         bool minimized = e.Args.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase));
@@ -58,6 +69,10 @@ public partial class App : Application
         var openItem = new System.Windows.Controls.MenuItem { Header = "Paramètres…" };
         openItem.Click += (_, _) => ShowSettings();
         menu.Items.Add(openItem);
+
+        var nextItem = new System.Windows.Controls.MenuItem { Header = "Image suivante" };
+        nextItem.Click += (_, _) => _slideshowService?.AdvanceAll();
+        menu.Items.Add(nextItem);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
@@ -78,7 +93,12 @@ public partial class App : Application
 
     private void ShowSettings()
     {
-        _settingsWindow ??= new SettingsWindow(_settingsViewModel!);
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow(_settingsViewModel!);
+            // Ré-applique le thème avec la fenêtre : branche le watcher système si « Système ».
+            _themeService?.Apply(_configService!.Load().Theme, _settingsWindow);
+        }
         _settingsWindow.Show();
         _settingsWindow.WindowState = WindowState.Normal;
         _settingsWindow.Activate();
@@ -88,6 +108,7 @@ public partial class App : Application
     private void ExitApp()
     {
         IsExiting = true;
+        _slideshowService?.Stop();
         _tray?.Dispose();
         _tray = null;
         Shutdown();
