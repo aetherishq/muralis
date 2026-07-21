@@ -66,6 +66,8 @@ public interface IWallpaperSource
 }
 ```
 
+Chaque source a un `SourceKind` : `Random` (chaque requête → image différente, proposée en **diaporama**) ou `Daily` (image du jour, ex. Bing, proposée dans la **card Image** en mode fixe — re-vérifiée en interne toutes les heures et re-posée uniquement si l'URL d'image change ; le cache web est nommé par hash d'URL).
+
 Implémentation générique config-driven pour toute source qui renvoie du JSON avec une URL d'image dedans (évite de coder une classe par source) :
 
 ```csharp

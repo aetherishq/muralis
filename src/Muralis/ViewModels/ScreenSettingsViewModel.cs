@@ -35,6 +35,9 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// </summary>
     public static string LocalFolderOption => Strings.Screen_LocalFolderOption;
 
+    /// <summary>Libellé UI du choix « fichier local » dans la card Image (mode fixe).</summary>
+    public static string LocalFileOption => Strings.Screen_LocalFileOption;
+
     /// <summary>Largeur de décodage des miniatures : évite de charger les images pleine taille.</summary>
     private const int ThumbnailDecodeWidth = 480;
 
@@ -44,14 +47,21 @@ public partial class ScreenSettingsViewModel : ObservableObject
     private readonly MonitorInfo? _monitor;
 
     /// <summary>Cible = un moniteur précis (config séparée par écran).</summary>
-    public ScreenSettingsViewModel(int index, MonitorInfo monitor, ScreenConfig config, ObservableCollection<string> sourceOptions)
+    public ScreenSettingsViewModel(
+        int index,
+        MonitorInfo monitor,
+        ScreenConfig config,
+        ObservableCollection<string> sourceOptions,
+        ObservableCollection<string> fixedSourceOptions)
     {
         _monitor = monitor;
         Number = index;
         DisplayLabel = string.Format(Strings.Screen_LabelFormat, index);
         ResolutionLabel = monitor.ResolutionLabel;
         SourceOptions = sourceOptions;
+        FixedSourceOptions = fixedSourceOptions;
         SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
+        FixedSourceOptions.CollectionChanged += (_, _) => EnsureSelectedFixedSourceValid();
         // Span n'a pas de sens sur un seul écran : réservé au mode unifié.
         AvailableModes = BuildModes(includeSpan: false);
         SetupThumbnailCell((double)monitor.Width / monitor.Height);
@@ -59,22 +69,31 @@ public partial class ScreenSettingsViewModel : ObservableObject
     }
 
     /// <summary>Cible = tous les écrans (mode unifié). Span autorisé, miniatures en 16:9.</summary>
-    public ScreenSettingsViewModel(ScreenConfig config, ObservableCollection<string> sourceOptions)
+    public ScreenSettingsViewModel(
+        ScreenConfig config,
+        ObservableCollection<string> sourceOptions,
+        ObservableCollection<string> fixedSourceOptions)
     {
         _monitor = null;
         Number = 0;
         DisplayLabel = Strings.Screen_AllScreens;
         ResolutionLabel = Strings.Screen_AllScreensDesc;
         SourceOptions = sourceOptions;
+        FixedSourceOptions = fixedSourceOptions;
         SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
+        FixedSourceOptions.CollectionChanged += (_, _) => EnsureSelectedFixedSourceValid();
         AvailableModes = BuildModes(includeSpan: true);
         SetupThumbnailCell(16.0 / 9.0);
         LoadFrom(config);
     }
 
-    /// <summary>Choix de source du diaporama : « Dossier local » + sources web ajoutées
+    /// <summary>Choix de source du diaporama : « Dossier local » + sources aléatoires
     /// (collection partagée, mise à jour en direct par la page Sources).</summary>
     public ObservableCollection<string> SourceOptions { get; }
+
+    /// <summary>Choix de la card Image : « Fichier local » + sources quotidiennes
+    /// (collection partagée, mise à jour en direct par la page Sources).</summary>
+    public ObservableCollection<string> FixedSourceOptions { get; }
 
     /// <summary>Device path du moniteur ciblé (vide en mode unifié).</summary>
     public string DeviceId => _monitor?.DeviceId ?? string.Empty;
@@ -129,7 +148,38 @@ public partial class ScreenSettingsViewModel : ObservableObject
     public bool ShowSlideshow => IsSlideshow;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FixedSourceDescription))]
     private string? imagePath;
+
+    /// <summary>Source de la card Image : « Fichier local » ou une source web quotidienne.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLocalFile), nameof(FixedSourceDescription))]
+    private string selectedFixedSource = LocalFileOption;
+
+    /// <summary>Vrai si l'image fixe vient d'un fichier choisi par l'utilisateur.</summary>
+    public bool IsLocalFile => SelectedFixedSource == LocalFileOption;
+
+    /// <summary>Description de la card Image : chemin du fichier, ou mention de mise à jour
+    /// quotidienne pour une source web.</summary>
+    public string FixedSourceDescription => IsLocalFile
+        ? (string.IsNullOrEmpty(ImagePath) ? Strings.Wallpapers_NoImageSelected : ImagePath)
+        : Strings.Wallpapers_DailyAutoDesc;
+
+    /// <summary>Même filet que pour le diaporama : le Selector pousse null quand l'option
+    /// sélectionnée disparaît.</summary>
+    partial void OnSelectedFixedSourceChanged(string? oldValue, string newValue)
+    {
+        if (string.IsNullOrEmpty(newValue))
+            SelectedFixedSource = LocalFileOption;
+    }
+
+    /// <summary>Une source quotidienne retirée ne doit pas laisser la card Image sur un nom
+    /// fantôme : retombe sur « Fichier local ».</summary>
+    private void EnsureSelectedFixedSourceValid()
+    {
+        if (string.IsNullOrEmpty(SelectedFixedSource) || !FixedSourceOptions.Contains(SelectedFixedSource))
+            SelectedFixedSource = LocalFileOption;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocalSource), nameof(ShowSlideshowPreview))]
@@ -241,10 +291,12 @@ public partial class ScreenSettingsViewModel : ObservableObject
         {
             DeviceId = DeviceId,
             Mode = IsSlideshow ? WallpaperMode.Slideshow : WallpaperMode.Fixed,
-            SourceType = !IsSlideshow ? "LocalFile"
-                : IsLocalSource ? SlideshowService.LocalFolderSourceType
-                : SelectedSource,
-            SourcePath = (IsSlideshow ? (IsLocalSource ? FolderPath : null) : ImagePath) ?? string.Empty,
+            SourceType = IsSlideshow
+                ? (IsLocalSource ? SlideshowService.LocalFolderSourceType : SelectedSource)
+                : (IsLocalFile ? ScreenConfig.LocalFileSourceType : SelectedFixedSource),
+            SourcePath = (IsSlideshow
+                ? (IsLocalSource ? FolderPath : null)
+                : (IsLocalFile ? ImagePath : null)) ?? string.Empty,
             SlideshowInterval = interval,
             Shuffle = Shuffle,
             DisplayMode = SelectedMode.Value,
@@ -265,7 +317,12 @@ public partial class ScreenSettingsViewModel : ObservableObject
         }
         else
         {
-            ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
+            bool isDaily = !string.IsNullOrEmpty(config.SourceType)
+                && config.SourceType != ScreenConfig.LocalFileSourceType
+                && FixedSourceOptions.Contains(config.SourceType);
+            SelectedFixedSource = isDaily ? config.SourceType : LocalFileOption;
+            if (!isDaily)
+                ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
         }
         var interval = config.SlideshowInterval > TimeSpan.Zero ? config.SlideshowInterval : TimeSpan.FromMinutes(30);
         // Affiche en minutes quand l'intervalle tombe rond, en secondes sinon.

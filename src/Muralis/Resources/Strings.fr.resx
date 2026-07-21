@@ -34,7 +34,7 @@
   <data name="Wallpapers_SlideshowTitle"><value>Diaporama</value></data>
   <data name="Wallpapers_SlideshowDesc"><value>Changer d'image automatiquement depuis un dossier ou une source web</value></data>
   <data name="Wallpapers_ImageSourceTitle"><value>Source des images</value></data>
-  <data name="Wallpapers_ImageSourceDesc"><value>Dossier local ou source web</value></data>
+  <data name="Wallpapers_ImageSourceDesc"><value>Dossier local ou source web aléatoire</value></data>
   <data name="Wallpapers_FolderTitle"><value>Dossier d'images</value></data>
   <data name="Wallpapers_NoFolderSelected"><value>Aucun dossier sélectionné</value></data>
   <data name="Wallpapers_IntervalTitle"><value>Intervalle</value></data>
@@ -49,6 +49,8 @@
   <data name="Screen_AllScreens"><value>Tous les écrans</value></data>
   <data name="Screen_AllScreensDesc"><value>Même fond sur tous les moniteurs</value></data>
   <data name="Screen_LocalFolderOption"><value>Dossier local</value></data>
+  <data name="Screen_LocalFileOption"><value>Fichier local</value></data>
+  <data name="Wallpapers_DailyAutoDesc"><value>Mise à jour automatique chaque jour</value></data>
   <data name="Screen_UnitMinutes"><value>minutes</value></data>
   <data name="Screen_UnitSeconds"><value>secondes</value></data>
   <data name="Dialog_ChooseImageFormat"><value>Choisir une image — {0}</value></data>
@@ -83,6 +85,9 @@
   <data name="Sources_PlaceholderJsonPath"><value>Chemin JSON de l'URL d'image (ex. images[0].url)</value></data>
   <data name="Sources_PlaceholderHeader"><value>En-tête API (ex. X-API-Key)</value></data>
   <data name="Sources_PlaceholderKey"><value>Clé API (optionnel)</value></data>
+  <data name="Sources_KindCaption"><value>Type de source</value></data>
+  <data name="SourceKind_Random"><value>Aléatoire (diaporama)</value></data>
+  <data name="SourceKind_Daily"><value>Image du jour (image fixe)</value></data>
 
   <!-- Statuts page Sources -->
   <data name="Status_KeyRequired"><value>Cette source nécessite une clé API.</value></data>

@@ -173,6 +173,18 @@
             </ui:CardExpander.Header>
 
             <StackPanel>
+                <StackPanel Margin="0,0,0,8" Orientation="Horizontal">
+                    <TextBlock
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center"
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{x:Static res:Strings.Sources_KindCaption}" />
+                    <ComboBox
+                        MinWidth="240"
+                        ItemsSource="{Binding Sources.KindOptions}"
+                        SelectedItem="{Binding Sources.SelectedKind}" />
+                </StackPanel>
                 <ui:TextBox
                     Margin="0,0,0,8"
                     PlaceholderText="{x:Static res:Strings.Sources_PlaceholderName}"

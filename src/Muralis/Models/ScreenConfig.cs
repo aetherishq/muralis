@@ -12,7 +12,11 @@ public class ScreenConfig
 
     public WallpaperMode Mode { get; set; } = WallpaperMode.Fixed;
 
-    /// <summary>"LocalFolder" ou nom d'une <c>IWallpaperSource</c> (M4). Vide en mode Fixed.</summary>
+    /// <summary>Valeur de <see cref="SourceType"/> pour une image fixe choisie sur disque.</summary>
+    public const string LocalFileSourceType = "LocalFile";
+
+    /// <summary>Mode Fixed : <see cref="LocalFileSourceType"/> ou nom d'une source web
+    /// quotidienne. Mode Slideshow : "LocalFolder" ou nom d'une source web aléatoire.</summary>
     public string SourceType { get; set; } = string.Empty;
 
     /// <summary>Chemin local de l'image (mode Fixed) ou config de source web (M3/M4).</summary>

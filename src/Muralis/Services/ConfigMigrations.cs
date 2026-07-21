@@ -32,13 +32,35 @@ public static class ConfigMigrations
                 source.Name = renamed;
                 changed = true;
             }
+
+            // Bing est une image du jour : les configs antérieures à SourceKind le
+            // portaient en Random (défaut de désérialisation).
+            if (source.Name == "Bing" && source.Kind != SourceKind.Daily)
+            {
+                source.Kind = SourceKind.Daily;
+                changed = true;
+            }
         }
+
+        var dailyNames = config.Sources
+            .Where(s => s.Kind == SourceKind.Daily)
+            .Select(s => s.Name)
+            .ToHashSet();
 
         foreach (var screen in config.Screens.Append(config.UnifiedConfig))
         {
             if (LegacySourceNames.TryGetValue(screen.SourceType, out string? renamed))
             {
                 screen.SourceType = renamed;
+                changed = true;
+            }
+
+            // Une source quotidienne n'est plus une source de diaporama : l'écran devient
+            // « image fixe alimentée par la source » (rafraîchie à cadence interne).
+            if (screen.Mode == WallpaperMode.Slideshow && dailyNames.Contains(screen.SourceType))
+            {
+                screen.Mode = WallpaperMode.Fixed;
+                screen.SourcePath = string.Empty;
                 changed = true;
             }
         }

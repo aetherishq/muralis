@@ -17,10 +17,14 @@ public sealed record SourcePreset(string Name, bool RequiresKey, string NoteKey)
     public required string ImageUrlJsonPath { get; init; }
     public string ApiKeyHeader { get; init; } = string.Empty;
 
+    /// <summary>Nature de la source (cf. <see cref="SourceKind"/>).</summary>
+    public SourceKind Kind { get; init; } = SourceKind.Random;
+
     /// <summary>Instancie une config ajoutable (copie : le catalogue reste immuable).</summary>
     public WallpaperSourceConfig ToConfig(string apiKey = "") => new()
     {
         Name = Name,
+        Kind = Kind,
         RequestUrl = RequestUrl,
         ImageUrlJsonPath = ImageUrlJsonPath,
         ApiKeyHeader = ApiKeyHeader,
@@ -40,6 +44,7 @@ public static class SourcePresets
         {
             RequestUrl = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=fr-FR",
             ImageUrlJsonPath = "images[0].url",
+            Kind = SourceKind.Daily,
         },
         new("Wallhaven", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
         {
