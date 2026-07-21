@@ -61,9 +61,13 @@ public partial class App : Application
         _slideshowService = new SlideshowService(_wallpaperService, fetcher);
         _themeService = new ThemeService();
 
+        // Migrations de config (une fois, avant toute lecture par les VMs/services).
+        var config = configService.Load();
+        if (ConfigMigrations.Apply(config))
+            configService.Save(config);
+
         // Langue AVANT toute construction d'UI (les libellés sont capturés à la création).
         // Premier lancement : la langue choisie dans l'installeur amorce la config.
-        var config = configService.Load();
         if (config.Language is null && LocalizationService.ReadInstallerSeed() is { } seeded)
         {
             config.Language = seeded;

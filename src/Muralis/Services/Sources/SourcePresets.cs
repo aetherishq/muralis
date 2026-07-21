@@ -5,7 +5,7 @@ namespace Muralis.Services.Sources;
 
 /// <summary>Un preset du catalogue : gabarit de config + indication de clé API.</summary>
 /// <param name="Name">Nom affiché (unique dans le catalogue). Identité persistée des sources
-/// ajoutées : jamais traduit.</param>
+/// ajoutées : marque nue, neutre en langue (le descriptif vit dans la note localisée).</param>
 /// <param name="RequiresKey">Vrai si la source ne fonctionne pas sans clé API.</param>
 /// <param name="NoteKey">Clé resx de l'aide courte affichée dans l'UI.</param>
 public sealed record SourcePreset(string Name, bool RequiresKey, string NoteKey)
@@ -36,22 +36,22 @@ public static class SourcePresets
 {
     public static readonly IReadOnlyList<SourcePreset> All =
     [
-        new("Bing (image du jour)", RequiresKey: false, nameof(Strings.Preset_BingNote))
+        new("Bing", RequiresKey: false, nameof(Strings.Preset_BingNote))
         {
             RequestUrl = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=fr-FR",
             ImageUrlJsonPath = "images[0].url",
         },
-        new("Wallhaven (aléatoire)", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
+        new("Wallhaven", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
         {
             RequestUrl = "https://wallhaven.cc/api/v1/search?sorting=random&categories=111&purity=100",
             ImageUrlJsonPath = "data[0].path",
         },
-        new("Danbooru (aléatoire)", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
+        new("Danbooru", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
         {
             RequestUrl = "https://danbooru.donmai.us/posts/random.json",
             ImageUrlJsonPath = "file_url",
         },
-        new("e621 (aléatoire)", RequiresKey: false, nameof(Strings.Preset_E621Note))
+        new("e621", RequiresKey: false, nameof(Strings.Preset_E621Note))
         {
             RequestUrl = "https://e621.net/posts.json?limit=1&tags=order:random+rating:s",
             ImageUrlJsonPath = "posts[0].file.url",
