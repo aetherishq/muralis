@@ -10,7 +10,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\muralis.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>Muralis</Product>
     <!-- Publish single-file : embarque aussi les DLL natives (wpfgfx, D3DCompiler…)
          dans l'exe, sinon elles restent posées à côté. -->

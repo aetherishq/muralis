@@ -199,5 +199,10 @@ public partial class SourcesViewModel : ObservableObject
         AvailablePresets.Clear();
         foreach (var preset in SourcePresets.All.Where(p => !IsNameTaken(p.Name)))
             AvailablePresets.Add(preset);
+
+        // Présélectionner le premier preset restant : un ComboBox vide fait « creux » et
+        // coûte un clic pour découvrir le catalogue (issue #6).
+        if (SelectedPreset is null || !AvailablePresets.Contains(SelectedPreset))
+            SelectedPreset = AvailablePresets.FirstOrDefault();
     }
 }
