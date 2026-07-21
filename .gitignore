@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # Claude Code — permissions locales de session (ne pas versionner)
 .claude/settings.local.json
+
+# Sorties de packaging (installeur Inno Setup)
+dist/

@@ -150,6 +150,7 @@ Vérifier après réouverture du terminal : `dotnet --version` (doit afficher du
 
 ## Build & packaging
 
+- Build complet de l'installeur : `installer\build.ps1` (publish + ISCC, sortie dans `dist\`, non versionné). Inno Setup 6 : `winget install -e --id JRSoftware.InnoSetup` (ISCC dans `%LocalAppData%\Programs\Inno Setup 6`).
 - Publish : `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true`
 - Installeur : script Inno Setup dans `/installer`, embarque le binaire self-contained.
   - `PrivilegesRequiredOverridesAllowed=dialog` pour laisser le choix "pour tout le monde" (Program Files, admin) vs "pour moi seulement" (`{localappdata}\Programs`, pas d'admin) — constantes `{autopf}` / `{autoprograms}` / `{autostartmenu}` obligatoires dans le script, jamais `{pf}` en dur.
