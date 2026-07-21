@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Muralis.Models;
+using Muralis.Resources;
 using Muralis.Services;
 
 namespace Muralis.ViewModels;
@@ -20,8 +21,19 @@ namespace Muralis.ViewModels;
 /// </summary>
 public partial class ScreenSettingsViewModel : ObservableObject
 {
-    /// <summary>Libellé UI du choix « dossier local » dans la liste des sources de diaporama.</summary>
-    public const string LocalFolderOption = "Dossier local";
+    /// <summary>Mode d'affichage présentable dans un ComboBox (libellé localisé).</summary>
+    public sealed record DisplayModeOption(DesktopWallpaperPosition Value, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    /// <summary>
+    /// Libellé UI du choix « dossier local » dans la liste des sources de diaporama.
+    /// Localisé — jamais persisté (la config stocke <see cref="SlideshowService.LocalFolderSourceType"/>) ;
+    /// les comparaisons restent cohérentes car tout le graphe de ViewModels est reconstruit
+    /// à chaque changement de langue.
+    /// </summary>
+    public static string LocalFolderOption => Strings.Screen_LocalFolderOption;
 
     /// <summary>Largeur de décodage des miniatures : évite de charger les images pleine taille.</summary>
     private const int ThumbnailDecodeWidth = 480;
@@ -36,16 +48,14 @@ public partial class ScreenSettingsViewModel : ObservableObject
     {
         _monitor = monitor;
         Number = index;
-        DisplayLabel = $"Écran {index}";
+        DisplayLabel = string.Format(Strings.Screen_LabelFormat, index);
         ResolutionLabel = monitor.ResolutionLabel;
         SourceOptions = sourceOptions;
         SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
         // Span n'a pas de sens sur un seul écran : réservé au mode unifié.
-        AvailableModes = ModesExcept(DesktopWallpaperPosition.Span);
+        AvailableModes = BuildModes(includeSpan: false);
         SetupThumbnailCell((double)monitor.Width / monitor.Height);
         LoadFrom(config);
-        if (DisplayMode == DesktopWallpaperPosition.Span)
-            DisplayMode = DesktopWallpaperPosition.Fill;
     }
 
     /// <summary>Cible = tous les écrans (mode unifié). Span autorisé, miniatures en 16:9.</summary>
@@ -53,11 +63,11 @@ public partial class ScreenSettingsViewModel : ObservableObject
     {
         _monitor = null;
         Number = 0;
-        DisplayLabel = "Tous les écrans";
-        ResolutionLabel = "Même fond sur tous les moniteurs";
+        DisplayLabel = Strings.Screen_AllScreens;
+        ResolutionLabel = Strings.Screen_AllScreensDesc;
         SourceOptions = sourceOptions;
         SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
-        AvailableModes = Enum.GetValues<DesktopWallpaperPosition>();
+        AvailableModes = BuildModes(includeSpan: true);
         SetupThumbnailCell(16.0 / 9.0);
         LoadFrom(config);
     }
@@ -76,8 +86,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     public string ResolutionLabel { get; }
 
-    /// <summary>Modes proposés dans le ComboBox (dépend de la cible).</summary>
-    public IReadOnlyList<DesktopWallpaperPosition> AvailableModes { get; }
+    /// <summary>Modes proposés dans le ComboBox (dépend de la cible), libellés localisés.</summary>
+    public IReadOnlyList<DisplayModeOption> AvailableModes { get; }
 
     /// <summary>Position/taille du rectangle dans le sélecteur d'écrans, en pixels du canvas
     /// (géométrie réelle des moniteurs mise à l'échelle par <see cref="SettingsViewModel.Load"/>).</summary>
@@ -151,8 +161,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
     [ObservableProperty]
     private string? folderPath;
 
-    public const string UnitMinutes = "minutes";
-    public const string UnitSeconds = "secondes";
+    /// <summary>Unités d'intervalle : localisées, jamais persistées (la config stocke un TimeSpan).</summary>
+    public static string UnitMinutes => Strings.Screen_UnitMinutes;
+
+    public static string UnitSeconds => Strings.Screen_UnitSeconds;
 
     /// <summary>Intervalle minimal du diaporama (une composition d'image a un coût).</summary>
     private static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(5);
@@ -180,7 +192,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
     private bool shuffle = true;
 
     [ObservableProperty]
-    private DesktopWallpaperPosition displayMode;
+    private DisplayModeOption selectedMode = null!; // assigné par LoadFrom (appelé des deux ctors)
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowSlideshowPreview))]
@@ -195,8 +207,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Title = $"Choisir une image — {DisplayLabel}",
-            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|Tous les fichiers|*.*",
+            Title = string.Format(Strings.Dialog_ChooseImageFormat, DisplayLabel),
+            Filter = $"{Strings.Dialog_ImagesFilter}|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp|{Strings.Dialog_AllFilesFilter}|*.*",
             CheckFileExists = true,
         };
 
@@ -209,7 +221,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
     {
         var dialog = new OpenFolderDialog
         {
-            Title = $"Choisir un dossier d'images — {DisplayLabel}",
+            Title = string.Format(Strings.Dialog_ChooseFolderFormat, DisplayLabel),
         };
 
         if (dialog.ShowDialog() == true)
@@ -235,7 +247,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
             SourcePath = (IsSlideshow ? (IsLocalSource ? FolderPath : null) : ImagePath) ?? string.Empty,
             SlideshowInterval = interval,
             Shuffle = Shuffle,
-            DisplayMode = DisplayMode,
+            DisplayMode = SelectedMode.Value,
         };
     }
 
@@ -261,7 +273,9 @@ public partial class ScreenSettingsViewModel : ObservableObject
         IntervalUnit = wholeMinutes ? UnitMinutes : UnitSeconds;
         IntervalValue = wholeMinutes ? interval.TotalMinutes : interval.TotalSeconds;
         Shuffle = config.Shuffle;
-        DisplayMode = config.DisplayMode;
+        // Fill (premier de la liste) en repli — couvre aussi un Span persisté sur une
+        // cible mono-écran, où ce mode n'est pas proposé.
+        SelectedMode = AvailableModes.FirstOrDefault(m => m.Value == config.DisplayMode) ?? AvailableModes[0];
     }
 
     private void SetupThumbnailCell(double aspectRatio)
@@ -313,6 +327,19 @@ public partial class ScreenSettingsViewModel : ObservableObject
         }
     }
 
-    private static IReadOnlyList<DesktopWallpaperPosition> ModesExcept(DesktopWallpaperPosition excluded) =>
-        Enum.GetValues<DesktopWallpaperPosition>().Where(m => m != excluded).ToArray();
+    /// <summary>Fill en tête (mode de repli), Span en dernier et réservé au mode unifié.</summary>
+    private static IReadOnlyList<DisplayModeOption> BuildModes(bool includeSpan)
+    {
+        var modes = new List<DisplayModeOption>
+        {
+            new(DesktopWallpaperPosition.Fill, Strings.DisplayMode_Fill),
+            new(DesktopWallpaperPosition.Fit, Strings.DisplayMode_Fit),
+            new(DesktopWallpaperPosition.Stretch, Strings.DisplayMode_Stretch),
+            new(DesktopWallpaperPosition.Center, Strings.DisplayMode_Center),
+            new(DesktopWallpaperPosition.Tile, Strings.DisplayMode_Tile),
+        };
+        if (includeSpan)
+            modes.Add(new(DesktopWallpaperPosition.Span, Strings.DisplayMode_Span));
+        return modes;
+    }
 }

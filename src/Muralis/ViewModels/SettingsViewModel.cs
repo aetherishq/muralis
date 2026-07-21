@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Muralis.Models;
+using Muralis.Resources;
 using Muralis.Services;
 
 namespace Muralis.ViewModels;
@@ -43,7 +44,7 @@ public partial class SettingsViewModel : ObservableObject
         // Feedback visible quand une source web ne fournit pas d'image (URL/chemin JSON
         // erronés, API en panne…) — sinon l'échec serait silencieux.
         _slideshowService.WebFetchFailed += name =>
-            StatusMessage = $"Source « {name} » : impossible de récupérer une image — fond actuel conservé.";
+            StatusMessage = string.Format(Strings.Status_FetchFailedFormat, name);
     }
 
     /// <summary>Paramètres d'application (page dédiée).</summary>
@@ -151,13 +152,13 @@ public partial class SettingsViewModel : ObservableObject
             // Relance les diaporamas selon la nouvelle config (première image immédiate).
             _slideshowService.Restart(config, _monitors);
             RefreshCurrentWallpapers();
-            StatusMessage = UnifiedMode
-                ? $"Même fond appliqué à {_monitors.Count} écran(s)."
-                : $"Appliqué à {_monitors.Count} écran(s).";
+            StatusMessage = string.Format(
+                UnifiedMode ? Strings.Status_AppliedUnifiedFormat : Strings.Status_AppliedFormat,
+                _monitors.Count);
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Échec : {ex.Message}";
+            StatusMessage = string.Format(Strings.Status_FailedFormat, ex.Message);
         }
     }
 
