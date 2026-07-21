@@ -12,6 +12,7 @@ namespace Muralis.Services;
 /// </summary>
 public class ThemeService
 {
+    /// <summary>Fenêtre actuellement branchée sur le watcher système (null : aucune).</summary>
     private Window? _watchedWindow;
 
     /// <summary>
@@ -21,22 +22,26 @@ public class ThemeService
     /// </summary>
     public void Apply(ThemePreference preference, Window? window)
     {
-        if (window is not null && !ReferenceEquals(window, _watchedWindow))
-        {
-            // Fenêtre nouvellement créée : on repart d'un état non observé.
-            _watchedWindow = window;
-        }
+        var target = window ?? _watchedWindow;
 
         if (preference == ThemePreference.System)
         {
             ApplicationThemeManager.ApplySystemTheme(updateAccent: true);
-            if (_watchedWindow is not null)
-                SystemThemeWatcher.Watch(_watchedWindow, WindowBackdropType.Mica, updateAccents: true);
+            if (target is not null && !ReferenceEquals(target, _watchedWindow))
+            {
+                // Watch accepte une fenêtre pas encore chargée (hook posé à son Loaded).
+                SystemThemeWatcher.Watch(target, WindowBackdropType.Mica, updateAccents: true);
+                _watchedWindow = target;
+            }
             return;
         }
 
-        if (_watchedWindow is not null)
+        // Thème forcé : débrancher le watcher éventuel. UnWatch exige une fenêtre chargée
+        // (WPF-UI lève InvalidOperationException sinon — crash au démarrage avec un thème
+        // forcé persisté) ; une fenêtre jamais chargée n'a de toute façon aucun hook actif.
+        if (_watchedWindow is { IsLoaded: true })
             SystemThemeWatcher.UnWatch(_watchedWindow);
+        _watchedWindow = null;
 
         var theme = preference == ThemePreference.Light ? ApplicationTheme.Light : ApplicationTheme.Dark;
         ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica, updateAccent: true);

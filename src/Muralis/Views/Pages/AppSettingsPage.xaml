@@ -1,0 +1,52 @@
+<Page
+    x:Class="Muralis.Views.Pages.AppSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Paramètres"
+    Loaded="OnLoaded">
+
+    <!-- Le scroll est assuré par le présentateur du NavigationView.
+         Marges de page 36/24, contenu plafonné à 1000px (DESIGN.md — Espacements). -->
+    <StackPanel MaxWidth="1000" Margin="36,24">
+        <TextBlock
+            Margin="0,0,0,24"
+            Style="{DynamicResource TitleTextBlockStyle}"
+            Text="Paramètres" />
+
+        <ui:CardControl Margin="0,0,0,4">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE7E8;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Lancer au démarrage de Windows" />
+                    <TextBlock
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="Démarre dans la zone de notification, sans ouvrir de fenêtre" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding AppSettings.StartWithWindows}" />
+        </ui:CardControl>
+
+        <ui:CardControl>
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE790;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Thème" />
+                    <TextBlock
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="Suivre Windows, ou forcer le mode sombre ou clair" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox
+                MinWidth="200"
+                ItemsSource="{Binding AppSettings.ThemeOptions}"
+                SelectedItem="{Binding AppSettings.SelectedTheme}" />
+        </ui:CardControl>
+    </StackPanel>
+</Page>

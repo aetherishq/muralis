@@ -1,0 +1,309 @@
+<Page
+    x:Class="Muralis.Views.Pages.WallpapersPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:Muralis.ViewModels"
+    Title="Fonds d'écran">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- Rectangle du sélecteur d'écrans : proportionnel à la géométrie réelle du moniteur,
+             miniature du fond appliqué en fond, numéro au centre, bordure accent si sélectionné
+             (pattern Paramètres > Système > Affichage, cf. DESIGN.md). -->
+        <Style x:Key="ScreenRectItem" TargetType="ListBoxItem">
+            <Setter Property="Canvas.Left" Value="{Binding SelectorLeft}" />
+            <Setter Property="Canvas.Top" Value="{Binding SelectorTop}" />
+            <Setter Property="ToolTip" Value="{Binding ResolutionLabel}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border
+                            x:Name="Rect"
+                            Width="{Binding SelectorWidth}"
+                            Height="{Binding SelectorHeight}"
+                            Margin="2"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <Grid>
+                                <Border Margin="1" CornerRadius="3">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding CurrentWallpaper}" Stretch="UniformToFill" />
+                                    </Border.Background>
+                                </Border>
+                                <Border
+                                    Padding="8,2"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource ControlSolidFillColorDefaultBrush}"
+                                    CornerRadius="4">
+                                    <TextBlock Style="{DynamicResource BodyStrongTextBlockStyle}" Text="{Binding Number}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Rect" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Rect" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Rect" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Éditeur d'une cible (un écran, ou tous les écrans en mode unifié), en cards. -->
+        <DataTemplate x:Key="ScreenEditor" DataType="{x:Type vm:ScreenSettingsViewModel}">
+            <StackPanel>
+                <TextBlock
+                    Margin="0,24,0,8"
+                    Style="{DynamicResource BodyStrongTextBlockStyle}"
+                    Text="Source" />
+
+                <!-- Image fixe -->
+                <ui:CardControl Margin="0,0,0,4" Visibility="{Binding ShowFixed, Converter={StaticResource BoolToVis}}">
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B9;" />
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Image" />
+                            <TextBlock
+                                Style="{DynamicResource CaptionTextBlockStyle}"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                TextTrimming="CharacterEllipsis"
+                                Text="{Binding ImagePath, TargetNullValue='Aucune image sélectionnée'}" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ui:Button Content="Parcourir…" Command="{Binding BrowseCommand}" />
+                </ui:CardControl>
+
+                <!-- Diaporama : toggle dans le header, sous-réglages dépliés (DESIGN.md — cards) -->
+                <ui:CardExpander Margin="0,0,0,4" IsExpanded="{Binding IsSlideshow, Mode=OneWay}">
+                    <ui:CardExpander.Icon>
+                        <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE786;" />
+                    </ui:CardExpander.Icon>
+                    <ui:CardExpander.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Diaporama" />
+                                <TextBlock
+                                    Style="{DynamicResource CaptionTextBlockStyle}"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    Text="Changer d'image automatiquement depuis un dossier ou une source web" />
+                            </StackPanel>
+                            <ui:ToggleSwitch
+                                Grid.Column="1"
+                                Margin="8,0"
+                                IsChecked="{Binding IsSlideshow}" />
+                        </Grid>
+                    </ui:CardExpander.Header>
+
+                    <StackPanel>
+                        <ui:CardControl Margin="0,0,0,4">
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Source des images" />
+                                    <TextBlock
+                                        Style="{DynamicResource CaptionTextBlockStyle}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Dossier local ou source web" />
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <ComboBox
+                                MinWidth="240"
+                                ItemsSource="{Binding SourceOptions}"
+                                SelectedItem="{Binding SelectedSource}" />
+                        </ui:CardControl>
+
+                        <ui:CardControl Margin="0,0,0,4" Visibility="{Binding IsLocalSource, Converter={StaticResource BoolToVis}}">
+                            <ui:CardControl.Icon>
+                                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B7;" />
+                            </ui:CardControl.Icon>
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Dossier d'images" />
+                                    <TextBlock
+                                        Style="{DynamicResource CaptionTextBlockStyle}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Text="{Binding FolderPath, TargetNullValue='Aucun dossier sélectionné'}" />
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <ui:Button Content="Parcourir…" Command="{Binding BrowseFolderCommand}" />
+                        </ui:CardControl>
+
+                        <!-- Grille de miniatures du dossier : coins 4px, espacement 8px,
+                             ratio de l'écran préservé (DESIGN.md) -->
+                        <ItemsControl
+                            Margin="4,4,4,0"
+                            ItemsSource="{Binding PreviewThumbnails}"
+                            Visibility="{Binding ShowSlideshowPreview, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Width="{Binding DataContext.ThumbnailCellWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        Height="{Binding DataContext.ThumbnailCellHeight, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        Margin="0,0,8,8"
+                                        CornerRadius="4">
+                                        <Border.Background>
+                                            <ImageBrush ImageSource="{Binding}" Stretch="UniformToFill" />
+                                        </Border.Background>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ui:CardControl Margin="0,0,0,4">
+                            <ui:CardControl.Icon>
+                                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE823;" />
+                            </ui:CardControl.Icon>
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Intervalle" />
+                                    <TextBlock
+                                        Style="{DynamicResource CaptionTextBlockStyle}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Temps entre deux images" />
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:NumberBox
+                                    Width="110"
+                                    Minimum="1"
+                                    Maximum="86400"
+                                    ClearButtonEnabled="False"
+                                    SpinButtonPlacementMode="Compact"
+                                    Value="{Binding IntervalValue}" />
+                                <ComboBox
+                                    Width="120"
+                                    Margin="8,0,0,0"
+                                    ItemsSource="{Binding IntervalUnits}"
+                                    SelectedItem="{Binding IntervalUnit}" />
+                            </StackPanel>
+                        </ui:CardControl>
+
+                        <ui:CardControl Visibility="{Binding IsLocalSource, Converter={StaticResource BoolToVis}}">
+                            <ui:CardControl.Icon>
+                                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B1;" />
+                            </ui:CardControl.Icon>
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Ordre aléatoire" />
+                                    <TextBlock
+                                        Style="{DynamicResource CaptionTextBlockStyle}"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Choisir la prochaine image au hasard" />
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <ui:ToggleSwitch IsChecked="{Binding Shuffle}" />
+                        </ui:CardControl>
+                    </StackPanel>
+                </ui:CardExpander>
+
+                <TextBlock
+                    Margin="0,24,0,8"
+                    Style="{DynamicResource BodyStrongTextBlockStyle}"
+                    Text="Affichage" />
+
+                <ui:CardControl>
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE740;" />
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Mode d'affichage" />
+                            <TextBlock
+                                Style="{DynamicResource CaptionTextBlockStyle}"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="Ajustement de l'image aux dimensions de l'écran" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ComboBox
+                        MinWidth="160"
+                        ItemsSource="{Binding AvailableModes}"
+                        SelectedItem="{Binding DisplayMode}" />
+                </ui:CardControl>
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <!-- Le scroll est assuré par le présentateur du NavigationView ; la barre « Appliquer »
+         vit dans la fenêtre pour rester toujours visible.
+         Marges de page 36/24, contenu plafonné à 1000px (DESIGN.md — Espacements). -->
+    <StackPanel MaxWidth="1000" Margin="36,24">
+                <TextBlock
+                    Margin="0,0,0,24"
+                    Style="{DynamicResource TitleTextBlockStyle}"
+                    Text="Fonds d'écran" />
+
+                <ui:CardControl>
+                    <ui:CardControl.Icon>
+                        <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE895;" />
+                    </ui:CardControl.Icon>
+                    <ui:CardControl.Header>
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Même fond sur tous les écrans" />
+                            <TextBlock
+                                Style="{DynamicResource CaptionTextBlockStyle}"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="Une seule configuration appliquée à chaque moniteur" />
+                        </StackPanel>
+                    </ui:CardControl.Header>
+                    <ui:ToggleSwitch IsChecked="{Binding UnifiedMode}" />
+                </ui:CardControl>
+
+                <!-- Sélecteur d'écrans : disposition réelle des moniteurs (mode séparé) -->
+                <StackPanel Margin="0,24,0,0" Visibility="{Binding ShowPerScreen, Converter={StaticResource BoolToVis}}">
+                    <ListBox
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="0"
+                        ItemContainerStyle="{StaticResource ScreenRectItem}"
+                        ItemsSource="{Binding Screens}"
+                        SelectedItem="{Binding SelectedScreen}"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Width="{Binding SelectorCanvasWidth}" Height="{Binding SelectorCanvasHeight}" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                    <!-- Résolution sous le sélecteur (DESIGN.md — pas dans un onglet) -->
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        HorizontalAlignment="Center"
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="{Binding SelectedScreen.DisplayLabel, Mode=OneWay}" /><Run Text=" — " /><Run Text="{Binding SelectedScreen.ResolutionLabel, Mode=OneWay}" /></TextBlock>
+                </StackPanel>
+
+                <!-- Éditeur : écran sélectionné (mode séparé) ou cible unique (mode unifié) -->
+                <ContentControl
+                    Content="{Binding SelectedScreen}"
+                    ContentTemplate="{StaticResource ScreenEditor}"
+                    Visibility="{Binding ShowPerScreen, Converter={StaticResource BoolToVis}}" />
+                <ContentControl
+                    Content="{Binding UnifiedScreen}"
+                    ContentTemplate="{StaticResource ScreenEditor}"
+                    Visibility="{Binding ShowUnified, Converter={StaticResource BoolToVis}}" />
+    </StackPanel>
+</Page>
+

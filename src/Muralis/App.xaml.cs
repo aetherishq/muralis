@@ -1,11 +1,13 @@
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
 using Muralis.Services;
+using Muralis.Services.Sources;
 using Muralis.ViewModels;
 using Muralis.Views;
 using Wpf.Ui.Appearance;
@@ -42,14 +44,22 @@ public partial class App : Application
         var screenService = new ScreenService();
         var composer = new WallpaperComposer(configService);
         var wallpaperService = new WallpaperService(composer);
-        _slideshowService = new SlideshowService(wallpaperService);
+
+        // Client HTTP partagé des sources web. User-Agent explicite : certaines API
+        // (e621 notamment) rejettent les clients sans identification.
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Muralis/1.0");
+        var fetcher = new WebWallpaperFetcher(http, configService);
+
+        _slideshowService = new SlideshowService(wallpaperService, fetcher);
         _themeService = new ThemeService();
 
         // Thème depuis la config (le watcher système sera branché à la création de la fenêtre).
         _themeService.Apply(configService.Load().Theme, window: null);
 
         var appSettings = new AppSettingsViewModel(configService, _themeService, () => _settingsWindow);
-        _settingsViewModel = new SettingsViewModel(configService, screenService, wallpaperService, _slideshowService, appSettings);
+        var sources = new SourcesViewModel(configService);
+        _settingsViewModel = new SettingsViewModel(configService, screenService, wallpaperService, _slideshowService, appSettings, sources);
 
         _tray = CreateTrayIcon(configService.DataDirectory);
 
@@ -96,8 +106,12 @@ public partial class App : Application
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(_settingsViewModel!);
-            // Ré-applique le thème avec la fenêtre : branche le watcher système si « Système ».
-            _themeService?.Apply(_configService!.Load().Theme, _settingsWindow);
+            // Ré-applique le thème une fois la fenêtre CHARGÉE (handle Win32 existant) :
+            // appliqué avant, WPF-UI ne met pas à jour le chrome/backdrop de la fenêtre —
+            // premier affichage incohérent (ex. ressources claires sur Mica sombre) quand le
+            // thème persisté ne suit pas Windows. Branche aussi le watcher si « Système ».
+            _settingsWindow.Loaded += (_, _) =>
+                _themeService?.Apply(_configService!.Load().Theme, _settingsWindow);
         }
         _settingsWindow.Show();
         _settingsWindow.WindowState = WindowState.Normal;
