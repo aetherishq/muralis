@@ -27,14 +27,28 @@
         <ui:TitleBar Grid.Row="0" Title="Muralis" />
 
         <!-- Pane gauche fixe façon Paramètres Windows 11 (DESIGN.md — Navigation).
-             Icônes Segoe Fluent : E7F4 TVMonitor, E774 Globe, E713 Settings. -->
+             Icônes Segoe Fluent : E7F4 TVMonitor, E774 Globe, E713 Settings.
+             RowSpan 2 : le pane descend jusqu'en bas de la fenêtre, la barre « Appliquer »
+             ne couvrant que la colonne de contenu. Le FrameMargin (via trigger, pas en
+             attribut local sinon il écraserait le style) réserve la hauteur de la barre
+             au présentateur de pages quand elle est visible. -->
         <ui:NavigationView
             x:Name="RootNavigation"
             Grid.Row="1"
+            Grid.RowSpan="2"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleVisible="False"
             OpenPaneLength="220"
             PaneDisplayMode="Left">
+            <ui:NavigationView.Style>
+                <Style BasedOn="{StaticResource {x:Type ui:NavigationView}}" TargetType="ui:NavigationView">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsWallpapersPageActive}" Value="True">
+                            <Setter Property="FrameMargin" Value="0,0,0,56" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ui:NavigationView.Style>
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Fonds d'écran" TargetPageType="{x:Type pages:WallpapersPage}">
                     <ui:NavigationViewItem.Icon>
@@ -56,10 +70,12 @@
             </ui:NavigationView.FooterMenuItems>
         </ui:NavigationView>
 
-        <!-- Barre d'action de la page Fonds d'écran : ancrée en bas de la fenêtre (hors du
-             scroll de page géré par le NavigationView), séparateur supérieur (DESIGN.md — Boutons) -->
+        <!-- Barre d'action de la page Fonds d'écran : ancrée en bas, confinée à la colonne
+             de contenu (marge gauche = OpenPaneLength), séparateur supérieur (DESIGN.md) -->
         <Border
             Grid.Row="2"
+            Margin="220,0,0,0"
+            MinHeight="56"
             Padding="36,10"
             BorderThickness="0,1,0,0"
             BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"

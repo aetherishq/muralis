@@ -67,8 +67,9 @@
                     Style="{DynamicResource BodyStrongTextBlockStyle}"
                     Text="Source" />
 
-                <!-- Image fixe -->
-                <ui:CardControl Margin="0,0,0,4" Visibility="{Binding ShowFixed, Converter={StaticResource BoolToVis}}">
+                <!-- Image fixe : toujours en place, grisée quand le diaporama prend la main
+                     (pas de saut de layout, exclusivité explicite — issue #5) -->
+                <ui:CardControl Margin="0,0,0,4" IsEnabled="{Binding ShowFixed}">
                     <ui:CardControl.Icon>
                         <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B9;" />
                     </ui:CardControl.Icon>
