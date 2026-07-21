@@ -7,7 +7,7 @@
 ; volontairement conservée à la désinstallation.
 
 #define MyAppName "Muralis"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Arkatul"
 #define MyAppURL "https://github.com/Arkatul/muralis"
 #define MyAppExeName "Muralis.exe"
