@@ -23,6 +23,9 @@ public class AppConfig
 
     public List<ScreenConfig> Screens { get; set; } = [];
 
+    /// <summary>Sources web ajoutées par l'utilisateur (presets du catalogue ou custom).</summary>
+    public List<WallpaperSourceConfig> Sources { get; set; } = [];
+
     /// <summary>Renvoie la config d'un écran par device path, ou <c>null</c> si absente.</summary>
     public ScreenConfig? FindScreen(string deviceId) =>
         Screens.FirstOrDefault(s => s.DeviceId == deviceId);

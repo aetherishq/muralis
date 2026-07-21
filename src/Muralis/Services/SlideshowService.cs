@@ -1,26 +1,48 @@
 using System.IO;
 using System.Windows.Threading;
 using Muralis.Models;
+using Muralis.Services.Sources;
 
 namespace Muralis.Services;
 
 /// <summary>
-/// Fait tourner les diaporamas locaux : une cible par écran en mode
-/// <see cref="WallpaperMode.Slideshow"/> (ou une seule cible en mode unifié), chacune avec son
-/// propre <see cref="DispatcherTimer"/> et son intervalle. Selon <see cref="ScreenConfig.Shuffle"/>,
-/// les images sont servies en ordre aléatoire sans répétition à l'intérieur d'un cycle, ou en ordre
-/// alphabétique. Le dossier est ré-énuméré à chaque nouveau cycle, donc ajouts/suppressions sont
-/// pris en compte sans redémarrage.
+/// Fait tourner les diaporamas : une cible par écran en mode <see cref="WallpaperMode.Slideshow"/>
+/// (ou une seule cible en mode unifié), chacune avec son propre <see cref="DispatcherTimer"/>.
+/// Deux types de source : dossier local (« LocalFolder » — cycle aléatoire sans répétition ou
+/// alphabétique selon <see cref="ScreenConfig.Shuffle"/>, dossier ré-énuméré à chaque cycle) ou
+/// source web (le <see cref="ScreenConfig.SourceType"/> référence une
+/// <see cref="WallpaperSourceConfig"/> par nom : chaque tick télécharge une nouvelle image via
+/// <see cref="WebWallpaperFetcher"/>, sans jamais bloquer l'UI ; en cas d'échec le fond courant
+/// est conservé et on retente au tick suivant).
 /// </summary>
 public class SlideshowService
 {
-    private readonly WallpaperService _wallpaperService;
-    private readonly List<SlideshowTarget> _targets = [];
+    public const string LocalFolderSourceType = "LocalFolder";
 
-    public SlideshowService(WallpaperService wallpaperService)
+    private readonly WallpaperService _wallpaperService;
+    private readonly WebWallpaperFetcher _fetcher;
+    private readonly List<SlideshowTarget> _targets = [];
+    private CancellationTokenSource _cts = new();
+
+    public SlideshowService(WallpaperService wallpaperService, WebWallpaperFetcher fetcher)
     {
         _wallpaperService = wallpaperService;
+        _fetcher = fetcher;
     }
+
+    /// <summary>
+    /// Levé après chaque pose effective d'une image (toujours sur l'UI thread). Permet à l'UI
+    /// de rafraîchir ses aperçus « fond appliqué » au bon moment — la première pose d'un
+    /// diaporama web arrive bien après le <see cref="Restart"/> (téléchargement asynchrone).
+    /// </summary>
+    public event Action? WallpaperApplied;
+
+    /// <summary>
+    /// Levé quand une source web n'a pas pu fournir d'image (réseau, API en erreur, config
+    /// invalide…), avec le nom de la source. Toujours sur l'UI thread. Le fond courant est
+    /// conservé et une nouvelle tentative aura lieu au tick suivant.
+    /// </summary>
+    public event Action<string>? WebFetchFailed;
 
     /// <summary>
     /// Arrête les diaporamas en cours puis relance ceux décrits par la config.
@@ -29,22 +51,24 @@ public class SlideshowService
     public void Restart(AppConfig config, IReadOnlyList<MonitorInfo> monitors)
     {
         Stop();
+        _cts = new CancellationTokenSource();
 
         if (config.Unified)
         {
             var unified = config.UnifiedConfig;
-            if (IsActive(unified))
-                AddTarget(unified, path => _wallpaperService.ApplyAllMonitors(path, unified.DisplayMode, monitors));
+            TryAddTarget(config, unified,
+                path => _wallpaperService.ApplyAllMonitors(path, unified.DisplayMode, monitors));
             return;
         }
 
         foreach (var monitor in monitors)
         {
             var screen = config.FindScreen(monitor.DeviceId);
-            if (screen is not null && IsActive(screen))
+            if (screen is not null)
             {
                 var target = monitor;
-                AddTarget(screen, path => _wallpaperService.ApplyMonitor(target, path, screen.DisplayMode));
+                TryAddTarget(config, screen,
+                    path => _wallpaperService.ApplyMonitor(target, path, screen.DisplayMode));
             }
         }
     }
@@ -63,20 +87,35 @@ public class SlideshowService
 
     public void Stop()
     {
+        _cts.Cancel();
         foreach (var target in _targets)
             target.Timer.Stop();
         _targets.Clear();
     }
 
-    private static bool IsActive(ScreenConfig screen) =>
-        screen.Mode == WallpaperMode.Slideshow && Directory.Exists(screen.SourcePath);
-
-    private void AddTarget(ScreenConfig config, Action<string> apply)
+    private void TryAddTarget(AppConfig config, ScreenConfig screen, Action<string> apply)
     {
-        // Plancher de sécurité : chaque changement recompose une image, pas de tick effréné.
-        var minInterval = TimeSpan.FromSeconds(5);
-        var interval = config.SlideshowInterval < minInterval ? minInterval : config.SlideshowInterval;
-        var target = new SlideshowTarget(config, apply)
+        if (screen.Mode != WallpaperMode.Slideshow)
+            return;
+
+        WallpaperSourceConfig? webSource = null;
+        if (screen.SourceType == LocalFolderSourceType || string.IsNullOrEmpty(screen.SourceType))
+        {
+            if (!Directory.Exists(screen.SourcePath))
+                return;
+        }
+        else
+        {
+            webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType);
+            if (webSource is null || !webSource.IsValid)
+                return; // Source supprimée ou incomplète : cible ignorée.
+        }
+
+        // Plancher de sécurité : composition locale à 5 s min, requêtes web à 60 s min.
+        var minInterval = webSource is null ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1);
+        var interval = screen.SlideshowInterval < minInterval ? minInterval : screen.SlideshowInterval;
+
+        var target = new SlideshowTarget(screen, apply, webSource)
         {
             Timer = new DispatcherTimer { Interval = interval },
         };
@@ -87,15 +126,22 @@ public class SlideshowService
         target.Timer.Start();
     }
 
-    private static void Advance(SlideshowTarget target)
+    private void Advance(SlideshowTarget target)
     {
-        string? next = NextImage(target);
+        if (target.WebSource is not null)
+        {
+            _ = AdvanceWebAsync(target, _cts.Token);
+            return;
+        }
+
+        string? next = NextLocalImage(target);
         if (next is null)
             return;
 
         try
         {
             target.Apply(next);
+            WallpaperApplied?.Invoke();
         }
         catch (Exception)
         {
@@ -103,7 +149,44 @@ public class SlideshowService
         }
     }
 
-    private static string? NextImage(SlideshowTarget target)
+    private async Task AdvanceWebAsync(SlideshowTarget target, CancellationToken ct)
+    {
+        if (target.FetchInProgress)
+            return; // Téléchargement précédent pas fini (intervalle court/réseau lent) : on saute.
+
+        target.FetchInProgress = true;
+        try
+        {
+            // Pas de ConfigureAwait(false) : Apply (imaging WPF + COM) doit reprendre sur l'UI thread.
+            string? path = await _fetcher.FetchAsync(target.WebSource!, ct);
+            if (ct.IsCancellationRequested)
+                return;
+
+            if (path is null)
+            {
+                WebFetchFailed?.Invoke(target.WebSource!.Name);
+                return;
+            }
+
+            target.Apply(path);
+            WallpaperApplied?.Invoke();
+        }
+        catch (OperationCanceledException)
+        {
+            // Arrêt/redémarrage du diaporama : silencieux.
+        }
+        catch (Exception)
+        {
+            // Échec d'application : fond courant conservé, retentative au prochain tick.
+            WebFetchFailed?.Invoke(target.WebSource!.Name);
+        }
+        finally
+        {
+            target.FetchInProgress = false;
+        }
+    }
+
+    private static string? NextLocalImage(SlideshowTarget target)
     {
         if (target.Queue.Count == 0)
             RefillQueue(target);
@@ -161,12 +244,14 @@ public class SlideshowService
             target.Queue.Enqueue(file);
     }
 
-    private sealed class SlideshowTarget(ScreenConfig config, Action<string> apply)
+    private sealed class SlideshowTarget(ScreenConfig config, Action<string> apply, WallpaperSourceConfig? webSource)
     {
         public ScreenConfig Config { get; } = config;
         public Action<string> Apply { get; } = apply;
+        public WallpaperSourceConfig? WebSource { get; } = webSource;
         public required DispatcherTimer Timer { get; init; }
         public Queue<string> Queue { get; } = new();
         public string? LastImage { get; set; }
+        public bool FetchInProgress { get; set; }
     }
 }
