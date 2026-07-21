@@ -12,6 +12,9 @@ public class AppConfig
     /// <summary>Thème de l'UI (le démarrage Windows, lui, vit uniquement dans le registre).</summary>
     public ThemePreference Theme { get; set; } = ThemePreference.System;
 
+    /// <summary>Langue de l'UI : <c>null</c> = suivre Windows, sinon code culture (« fr », « en »).</summary>
+    public string? Language { get; set; }
+
     /// <summary>
     /// Vrai : un même fond (voir <see cref="UnifiedConfig"/>) s'applique à tous les écrans.
     /// Faux : chaque écran a sa propre config (voir <see cref="Screens"/>).
