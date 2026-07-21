@@ -110,7 +110,10 @@
                         </Grid>
                     </ui:CardExpander.Header>
 
-                    <StackPanel>
+                    <!-- Visibilité liée au toggle : le CardExpander remplace le binding OneWay
+                         d'IsExpanded par une valeur locale au premier clic manuel sur le header,
+                         le repli automatique ne suffit donc pas. -->
+                    <StackPanel Visibility="{Binding ShowSlideshow, Converter={StaticResource BoolToVis}}">
                         <ui:CardControl Margin="0,0,0,4">
                             <ui:CardControl.Header>
                                 <StackPanel>
