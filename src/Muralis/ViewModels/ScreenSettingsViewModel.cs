@@ -39,6 +39,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
         DisplayLabel = $"Écran {index}";
         ResolutionLabel = monitor.ResolutionLabel;
         SourceOptions = sourceOptions;
+        SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
         // Span n'a pas de sens sur un seul écran : réservé au mode unifié.
         AvailableModes = ModesExcept(DesktopWallpaperPosition.Span);
         SetupThumbnailCell((double)monitor.Width / monitor.Height);
@@ -55,6 +56,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
         DisplayLabel = "Tous les écrans";
         ResolutionLabel = "Même fond sur tous les moniteurs";
         SourceOptions = sourceOptions;
+        SourceOptions.CollectionChanged += (_, _) => EnsureSelectedSourceValid();
         AvailableModes = Enum.GetValues<DesktopWallpaperPosition>();
         SetupThumbnailCell(16.0 / 9.0);
         LoadFrom(config);
@@ -125,6 +127,26 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     /// <summary>Vrai si le diaporama puise dans un dossier local (sinon : source web).</summary>
     public bool IsLocalSource => SelectedSource == LocalFolderOption;
+
+    /// <summary>
+    /// Le Selector WPF pousse <c>null</c> quand l'option sélectionnée est retirée de
+    /// <see cref="SourceOptions"/> : retomber sur « Dossier local » plutôt que de laisser
+    /// l'éditeur dans un état invalide (cards masquées, ComboBox vide). Ré-entrance sûre :
+    /// le setter généré ne re-notifie que sur changement réel.
+    /// </summary>
+    partial void OnSelectedSourceChanged(string? oldValue, string newValue)
+    {
+        if (string.IsNullOrEmpty(newValue))
+            SelectedSource = LocalFolderOption;
+    }
+
+    /// <summary>Une source retirée du catalogue ne doit pas laisser un écran pointer sur un
+    /// nom fantôme : retombe sur « Dossier local » (issue #2).</summary>
+    private void EnsureSelectedSourceValid()
+    {
+        if (string.IsNullOrEmpty(SelectedSource) || !SourceOptions.Contains(SelectedSource))
+            SelectedSource = LocalFolderOption;
+    }
 
     [ObservableProperty]
     private string? folderPath;
