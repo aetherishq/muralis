@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:vm="clr-namespace:Muralis.ViewModels"
-    Title="Fonds d'écran">
+    xmlns:res="clr-namespace:Muralis.Resources">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -65,7 +65,7 @@
                 <TextBlock
                     Margin="0,24,0,8"
                     Style="{DynamicResource BodyStrongTextBlockStyle}"
-                    Text="Source" />
+                    Text="{x:Static res:Strings.Wallpapers_SectionSource}" />
 
                 <!-- Image fixe : toujours en place, grisée quand le diaporama prend la main
                      (pas de saut de layout, exclusivité explicite — issue #5) -->
@@ -75,15 +75,15 @@
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
                         <StackPanel>
-                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Image" />
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_ImageTitle}" />
                             <TextBlock
                                 Style="{DynamicResource CaptionTextBlockStyle}"
                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                 TextTrimming="CharacterEllipsis"
-                                Text="{Binding ImagePath, TargetNullValue='Aucune image sélectionnée'}" />
+                                Text="{Binding ImagePath, TargetNullValue={x:Static res:Strings.Wallpapers_NoImageSelected}}" />
                         </StackPanel>
                     </ui:CardControl.Header>
-                    <ui:Button Content="Parcourir…" Command="{Binding BrowseCommand}" />
+                    <ui:Button Content="{x:Static res:Strings.Common_Browse}" Command="{Binding BrowseCommand}" />
                 </ui:CardControl>
 
                 <!-- Diaporama : toggle dans le header, sous-réglages dépliés (DESIGN.md — cards) -->
@@ -98,11 +98,11 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Diaporama" />
+                                <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_SlideshowTitle}" />
                                 <TextBlock
                                     Style="{DynamicResource CaptionTextBlockStyle}"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                    Text="Changer d'image automatiquement depuis un dossier ou une source web" />
+                                    Text="{x:Static res:Strings.Wallpapers_SlideshowDesc}" />
                             </StackPanel>
                             <ui:ToggleSwitch
                                 Grid.Column="1"
@@ -118,11 +118,11 @@
                         <ui:CardControl Margin="0,0,0,4">
                             <ui:CardControl.Header>
                                 <StackPanel>
-                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Source des images" />
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_ImageSourceTitle}" />
                                     <TextBlock
                                         Style="{DynamicResource CaptionTextBlockStyle}"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Dossier local ou source web" />
+                                        Text="{x:Static res:Strings.Wallpapers_ImageSourceDesc}" />
                                 </StackPanel>
                             </ui:CardControl.Header>
                             <ComboBox
@@ -137,15 +137,15 @@
                             </ui:CardControl.Icon>
                             <ui:CardControl.Header>
                                 <StackPanel>
-                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Dossier d'images" />
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_FolderTitle}" />
                                     <TextBlock
                                         Style="{DynamicResource CaptionTextBlockStyle}"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         TextTrimming="CharacterEllipsis"
-                                        Text="{Binding FolderPath, TargetNullValue='Aucun dossier sélectionné'}" />
+                                        Text="{Binding FolderPath, TargetNullValue={x:Static res:Strings.Wallpapers_NoFolderSelected}}" />
                                 </StackPanel>
                             </ui:CardControl.Header>
-                            <ui:Button Content="Parcourir…" Command="{Binding BrowseFolderCommand}" />
+                            <ui:Button Content="{x:Static res:Strings.Common_Browse}" Command="{Binding BrowseFolderCommand}" />
                         </ui:CardControl>
 
                         <!-- Grille de miniatures du dossier : coins 4px, espacement 8px,
@@ -180,11 +180,11 @@
                             </ui:CardControl.Icon>
                             <ui:CardControl.Header>
                                 <StackPanel>
-                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Intervalle" />
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_IntervalTitle}" />
                                     <TextBlock
                                         Style="{DynamicResource CaptionTextBlockStyle}"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Temps entre deux images" />
+                                        Text="{x:Static res:Strings.Wallpapers_IntervalDesc}" />
                                 </StackPanel>
                             </ui:CardControl.Header>
                             <StackPanel Orientation="Horizontal">
@@ -209,11 +209,11 @@
                             </ui:CardControl.Icon>
                             <ui:CardControl.Header>
                                 <StackPanel>
-                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Ordre aléatoire" />
+                                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_ShuffleTitle}" />
                                     <TextBlock
                                         Style="{DynamicResource CaptionTextBlockStyle}"
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Choisir la prochaine image au hasard" />
+                                        Text="{x:Static res:Strings.Wallpapers_ShuffleDesc}" />
                                 </StackPanel>
                             </ui:CardControl.Header>
                             <ui:ToggleSwitch IsChecked="{Binding Shuffle}" />
@@ -224,7 +224,7 @@
                 <TextBlock
                     Margin="0,24,0,8"
                     Style="{DynamicResource BodyStrongTextBlockStyle}"
-                    Text="Affichage" />
+                    Text="{x:Static res:Strings.Wallpapers_SectionDisplay}" />
 
                 <ui:CardControl>
                     <ui:CardControl.Icon>
@@ -232,17 +232,17 @@
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
                         <StackPanel>
-                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Mode d'affichage" />
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_DisplayModeTitle}" />
                             <TextBlock
                                 Style="{DynamicResource CaptionTextBlockStyle}"
                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="Ajustement de l'image aux dimensions de l'écran" />
+                                Text="{x:Static res:Strings.Wallpapers_DisplayModeDesc}" />
                         </StackPanel>
                     </ui:CardControl.Header>
                     <ComboBox
                         MinWidth="160"
                         ItemsSource="{Binding AvailableModes}"
-                        SelectedItem="{Binding DisplayMode}" />
+                        SelectedItem="{Binding SelectedMode}" />
                 </ui:CardControl>
             </StackPanel>
         </DataTemplate>
@@ -255,7 +255,7 @@
                 <TextBlock
                     Margin="0,0,0,24"
                     Style="{DynamicResource TitleTextBlockStyle}"
-                    Text="Fonds d'écran" />
+                    Text="{x:Static res:Strings.Wallpapers_Title}" />
 
                 <ui:CardControl>
                     <ui:CardControl.Icon>
@@ -263,11 +263,11 @@
                     </ui:CardControl.Icon>
                     <ui:CardControl.Header>
                         <StackPanel>
-                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Même fond sur tous les écrans" />
+                            <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Wallpapers_UnifiedTitle}" />
                             <TextBlock
                                 Style="{DynamicResource CaptionTextBlockStyle}"
                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="Une seule configuration appliquée à chaque moniteur" />
+                                Text="{x:Static res:Strings.Wallpapers_UnifiedDesc}" />
                         </StackPanel>
                     </ui:CardControl.Header>
                     <ui:ToggleSwitch IsChecked="{Binding UnifiedMode}" />

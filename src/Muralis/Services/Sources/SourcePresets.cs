@@ -1,13 +1,18 @@
 using Muralis.Models;
+using Muralis.Resources;
 
 namespace Muralis.Services.Sources;
 
 /// <summary>Un preset du catalogue : gabarit de config + indication de clé API.</summary>
-/// <param name="Name">Nom affiché (unique dans le catalogue).</param>
+/// <param name="Name">Nom affiché (unique dans le catalogue). Identité persistée des sources
+/// ajoutées : marque nue, neutre en langue (le descriptif vit dans la note localisée).</param>
 /// <param name="RequiresKey">Vrai si la source ne fonctionne pas sans clé API.</param>
-/// <param name="Note">Aide courte affichée dans l'UI (obtention de clé, particularités…).</param>
-public sealed record SourcePreset(string Name, bool RequiresKey, string Note)
+/// <param name="NoteKey">Clé resx de l'aide courte affichée dans l'UI.</param>
+public sealed record SourcePreset(string Name, bool RequiresKey, string NoteKey)
 {
+    /// <summary>Aide localisée, résolue à l'affichage (suit les changements de langue).</summary>
+    public string Note => Strings.ResourceManager.GetString(NoteKey) ?? string.Empty;
+
     public required string RequestUrl { get; init; }
     public required string ImageUrlJsonPath { get; init; }
     public string ApiKeyHeader { get; init; } = string.Empty;
@@ -31,22 +36,22 @@ public static class SourcePresets
 {
     public static readonly IReadOnlyList<SourcePreset> All =
     [
-        new("Bing (image du jour)", RequiresKey: false, "Image du jour Bing, sans clé.")
+        new("Bing", RequiresKey: false, nameof(Strings.Preset_BingNote))
         {
             RequestUrl = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=fr-FR",
             ImageUrlJsonPath = "images[0].url",
         },
-        new("Wallhaven (aléatoire)", RequiresKey: false, "SFW par défaut ; éditer purity/categories dans l'URL. NSFW : clé du compte requise — en-tête X-API-Key, ou &apikey=CLE dans l'URL.")
+        new("Wallhaven", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
         {
             RequestUrl = "https://wallhaven.cc/api/v1/search?sorting=random&categories=111&purity=100",
             ImageUrlJsonPath = "data[0].path",
         },
-        new("Danbooru (aléatoire)", RequiresKey: false, "Post aléatoire ; filtres via tags dans l'URL.")
+        new("Danbooru", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
         {
             RequestUrl = "https://danbooru.donmai.us/posts/random.json",
             ImageUrlJsonPath = "file_url",
         },
-        new("e621 (aléatoire)", RequiresKey: false, "rating:s par défaut, ajustable via tags dans l'URL.")
+        new("e621", RequiresKey: false, nameof(Strings.Preset_E621Note))
         {
             RequestUrl = "https://e621.net/posts.json?limit=1&tags=order:random+rating:s",
             ImageUrlJsonPath = "posts[0].file.url",

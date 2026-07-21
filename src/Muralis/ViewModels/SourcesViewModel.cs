@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Muralis.Models;
+using Muralis.Resources;
 using Muralis.Services;
 using Muralis.Services.Sources;
 
@@ -83,7 +84,7 @@ public partial class SourcesViewModel : ObservableObject
             return;
         if (SelectedPreset.RequiresKey && string.IsNullOrWhiteSpace(PresetApiKey))
         {
-            StatusMessage = "Cette source nécessite une clé API.";
+            StatusMessage = Strings.Status_KeyRequired;
             return;
         }
 
@@ -107,18 +108,18 @@ public partial class SourcesViewModel : ObservableObject
 
         if (!source.IsValid)
         {
-            StatusMessage = "Nom, URL absolue et chemin JSON sont requis.";
+            StatusMessage = Strings.Status_CustomInvalid;
             return;
         }
         if (IsNameTaken(source.Name))
         {
-            StatusMessage = $"Une source « {source.Name} » existe déjà.";
+            StatusMessage = string.Format(Strings.Status_NameTakenFormat, source.Name);
             return;
         }
 
         Add(source);
         if (KeyWithoutHeader(source))
-            StatusMessage = $"Source « {source.Name} » ajoutée — attention : sans « En-tête API », la clé n'est jamais envoyée (indiquez l'en-tête, ex. X-API-Key, ou mettez la clé dans l'URL).";
+            StatusMessage = string.Format(Strings.Status_AddedNoHeaderFormat, source.Name);
         CustomName = CustomUrl = CustomJsonPath = CustomApiKeyHeader = CustomApiKey = string.Empty;
     }
 
@@ -131,7 +132,7 @@ public partial class SourcesViewModel : ObservableObject
     {
         if (!source.IsValid)
         {
-            StatusMessage = "URL absolue et chemin JSON requis.";
+            StatusMessage = Strings.Status_UpdateInvalid;
             return;
         }
 
@@ -149,9 +150,9 @@ public partial class SourcesViewModel : ObservableObject
         if (index >= 0)
             Sources[index] = source;
 
-        StatusMessage = KeyWithoutHeader(source)
-            ? $"Source « {source.Name} » enregistrée — attention : sans « En-tête API », la clé n'est jamais envoyée (indiquez l'en-tête, ex. X-API-Key, ou mettez la clé dans l'URL)."
-            : $"Source « {source.Name} » enregistrée — réappliquez les écrans qui l'utilisent.";
+        StatusMessage = string.Format(
+            KeyWithoutHeader(source) ? Strings.Status_SavedNoHeaderFormat : Strings.Status_SavedFormat,
+            source.Name);
     }
 
     /// <summary>Clé fournie mais pas d'en-tête : la clé ne partirait dans aucune requête.</summary>
@@ -169,14 +170,14 @@ public partial class SourcesViewModel : ObservableObject
         _configService.Save(config);
 
         RefreshAvailablePresets();
-        StatusMessage = $"Source « {source.Name} » retirée.";
+        StatusMessage = string.Format(Strings.Status_RemovedFormat, source.Name);
     }
 
     private void Add(WallpaperSourceConfig source)
     {
         if (IsNameTaken(source.Name))
         {
-            StatusMessage = $"Une source « {source.Name} » existe déjà.";
+            StatusMessage = string.Format(Strings.Status_NameTakenFormat, source.Name);
             return;
         }
 
@@ -187,7 +188,7 @@ public partial class SourcesViewModel : ObservableObject
         config.Sources.Add(source);
         _configService.Save(config);
 
-        StatusMessage = $"Source « {source.Name} » ajoutée.";
+        StatusMessage = string.Format(Strings.Status_AddedFormat, source.Name);
     }
 
     private bool IsNameTaken(string name) =>

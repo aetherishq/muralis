@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Navigation -->
+  <data name="Nav_Wallpapers"><value>Fonds d'écran</value></data>
+  <data name="Nav_WebSources"><value>Sources web</value></data>
+  <data name="Nav_Settings"><value>Paramètres</value></data>
+
+  <!-- Commun -->
+  <data name="Common_Browse"><value>Parcourir…</value></data>
+  <data name="Common_Apply"><value>Appliquer</value></data>
+  <data name="Common_Add"><value>Ajouter</value></data>
+
+  <!-- Page Fonds d'écran -->
+  <data name="Wallpapers_Title"><value>Fonds d'écran</value></data>
+  <data name="Wallpapers_UnifiedTitle"><value>Même fond sur tous les écrans</value></data>
+  <data name="Wallpapers_UnifiedDesc"><value>Une seule configuration appliquée à chaque moniteur</value></data>
+  <data name="Wallpapers_SectionSource"><value>Source</value></data>
+  <data name="Wallpapers_SectionDisplay"><value>Affichage</value></data>
+  <data name="Wallpapers_ImageTitle"><value>Image</value></data>
+  <data name="Wallpapers_NoImageSelected"><value>Aucune image sélectionnée</value></data>
+  <data name="Wallpapers_SlideshowTitle"><value>Diaporama</value></data>
+  <data name="Wallpapers_SlideshowDesc"><value>Changer d'image automatiquement depuis un dossier ou une source web</value></data>
+  <data name="Wallpapers_ImageSourceTitle"><value>Source des images</value></data>
+  <data name="Wallpapers_ImageSourceDesc"><value>Dossier local ou source web</value></data>
+  <data name="Wallpapers_FolderTitle"><value>Dossier d'images</value></data>
+  <data name="Wallpapers_NoFolderSelected"><value>Aucun dossier sélectionné</value></data>
+  <data name="Wallpapers_IntervalTitle"><value>Intervalle</value></data>
+  <data name="Wallpapers_IntervalDesc"><value>Temps entre deux images</value></data>
+  <data name="Wallpapers_ShuffleTitle"><value>Ordre aléatoire</value></data>
+  <data name="Wallpapers_ShuffleDesc"><value>Choisir la prochaine image au hasard</value></data>
+  <data name="Wallpapers_DisplayModeTitle"><value>Mode d'affichage</value></data>
+  <data name="Wallpapers_DisplayModeDesc"><value>Ajustement de l'image aux dimensions de l'écran</value></data>
+
+  <!-- Cibles / éditeur d'écran -->
+  <data name="Screen_LabelFormat"><value>Écran {0}</value></data>
+  <data name="Screen_AllScreens"><value>Tous les écrans</value></data>
+  <data name="Screen_AllScreensDesc"><value>Même fond sur tous les moniteurs</value></data>
+  <data name="Screen_LocalFolderOption"><value>Dossier local</value></data>
+  <data name="Screen_UnitMinutes"><value>minutes</value></data>
+  <data name="Screen_UnitSeconds"><value>secondes</value></data>
+  <data name="Dialog_ChooseImageFormat"><value>Choisir une image — {0}</value></data>
+  <data name="Dialog_ChooseFolderFormat"><value>Choisir un dossier d'images — {0}</value></data>
+  <data name="Dialog_ImagesFilter"><value>Images</value></data>
+  <data name="Dialog_AllFilesFilter"><value>Tous les fichiers</value></data>
+
+  <!-- Modes d'affichage -->
+  <data name="DisplayMode_Fill"><value>Remplir</value></data>
+  <data name="DisplayMode_Fit"><value>Ajuster</value></data>
+  <data name="DisplayMode_Stretch"><value>Étirer</value></data>
+  <data name="DisplayMode_Center"><value>Centrer</value></data>
+  <data name="DisplayMode_Tile"><value>Mosaïque</value></data>
+  <data name="DisplayMode_Span"><value>Étendre sur tous les écrans</value></data>
+
+  <!-- Page Sources web -->
+  <data name="Sources_Title"><value>Sources web</value></data>
+  <data name="Sources_SectionAdded"><value>Sources ajoutées</value></data>
+  <data name="Sources_Remove"><value>Retirer</value></data>
+  <data name="Sources_SaveChanges"><value>Enregistrer les modifications</value></data>
+  <data name="Sources_EmptyState"><value>Aucune source ajoutée — choisissez-en une dans le catalogue ci-dessous.</value></data>
+  <data name="Sources_SectionAdd"><value>Ajouter une source</value></data>
+  <data name="Sources_CatalogTitle"><value>Depuis le catalogue</value></data>
+  <data name="Sources_CatalogDesc"><value>Sources préconfigurées, prêtes à l'emploi</value></data>
+  <data name="Sources_ApiKeyTitle"><value>Clé API</value></data>
+  <data name="Sources_ApiKeyDesc"><value>Requise pour cette source</value></data>
+  <data name="Sources_CustomTitle"><value>Source personnalisée</value></data>
+  <data name="Sources_CustomDesc"><value>Toute API JSON renvoyant une URL d'image, sans recompilation</value></data>
+  <data name="Sources_AddCustom"><value>Ajouter la source</value></data>
+  <data name="Sources_PlaceholderName"><value>Nom (ex. Mon API)</value></data>
+  <data name="Sources_PlaceholderUrl"><value>URL de requête (https://…)</value></data>
+  <data name="Sources_PlaceholderJsonPath"><value>Chemin JSON de l'URL d'image (ex. images[0].url)</value></data>
+  <data name="Sources_PlaceholderHeader"><value>En-tête API (ex. X-API-Key)</value></data>
+  <data name="Sources_PlaceholderKey"><value>Clé API (optionnel)</value></data>
+
+  <!-- Statuts page Sources -->
+  <data name="Status_KeyRequired"><value>Cette source nécessite une clé API.</value></data>
+  <data name="Status_NameTakenFormat"><value>Une source « {0} » existe déjà.</value></data>
+  <data name="Status_AddedFormat"><value>Source « {0} » ajoutée.</value></data>
+  <data name="Status_AddedNoHeaderFormat"><value>Source « {0} » ajoutée — attention : sans « En-tête API », la clé n'est jamais envoyée (indiquez l'en-tête, ex. X-API-Key, ou mettez la clé dans l'URL).</value></data>
+  <data name="Status_SavedNoHeaderFormat"><value>Source « {0} » enregistrée — attention : sans « En-tête API », la clé n'est jamais envoyée (indiquez l'en-tête, ex. X-API-Key, ou mettez la clé dans l'URL).</value></data>
+  <data name="Status_SavedFormat"><value>Source « {0} » enregistrée — réappliquez les écrans qui l'utilisent.</value></data>
+  <data name="Status_RemovedFormat"><value>Source « {0} » retirée.</value></data>
+  <data name="Status_CustomInvalid"><value>Nom, URL absolue et chemin JSON sont requis.</value></data>
+  <data name="Status_UpdateInvalid"><value>URL absolue et chemin JSON requis.</value></data>
+
+  <!-- Statuts barre Appliquer -->
+  <data name="Status_FetchFailedFormat"><value>Source « {0} » : impossible de récupérer une image — fond actuel conservé.</value></data>
+  <data name="Status_AppliedUnifiedFormat"><value>Même fond appliqué à {0} écran(s).</value></data>
+  <data name="Status_AppliedFormat"><value>Appliqué à {0} écran(s).</value></data>
+  <data name="Status_FailedFormat"><value>Échec : {0}</value></data>
+
+  <!-- Page Paramètres -->
+  <data name="Settings_Title"><value>Paramètres</value></data>
+  <data name="Settings_StartupTitle"><value>Lancer au démarrage de Windows</value></data>
+  <data name="Settings_StartupDesc"><value>Démarre dans la zone de notification, sans ouvrir de fenêtre</value></data>
+  <data name="Settings_LanguageTitle"><value>Langue</value></data>
+  <data name="Settings_LanguageDesc"><value>Suivre Windows, ou forcer le français ou l'anglais</value></data>
+  <data name="Settings_ThemeTitle"><value>Thème</value></data>
+  <data name="Settings_ThemeDesc"><value>Suivre Windows, ou forcer le mode sombre ou clair</value></data>
+  <data name="Option_System"><value>Système (Windows)</value></data>
+  <data name="Theme_Dark"><value>Sombre</value></data>
+  <data name="Theme_Light"><value>Clair</value></data>
+
+  <!-- Menu tray -->
+  <data name="Tray_Settings"><value>Paramètres…</value></data>
+  <data name="Tray_NextImage"><value>Image suivante</value></data>
+  <data name="Tray_Quit"><value>Quitter</value></data>
+
+  <!-- Notes des presets du catalogue -->
+  <data name="Preset_BingNote"><value>Image du jour Bing, sans clé.</value></data>
+  <data name="Preset_WallhavenNote"><value>SFW par défaut ; éditer purity/categories dans l'URL. NSFW : clé du compte requise — en-tête X-API-Key, ou &amp;apikey=CLE dans l'URL.</value></data>
+  <data name="Preset_DanbooruNote"><value>Post aléatoire ; filtres via tags dans l'URL.</value></data>
+  <data name="Preset_E621Note"><value>rating:s par défaut, ajustable via tags dans l'URL.</value></data>
+</root>

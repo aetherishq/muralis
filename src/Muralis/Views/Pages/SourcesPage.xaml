@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="Sources web">
+    xmlns:res="clr-namespace:Muralis.Resources">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -15,12 +15,12 @@
         <TextBlock
             Margin="0,0,0,24"
             Style="{DynamicResource TitleTextBlockStyle}"
-            Text="Sources web" />
+            Text="{x:Static res:Strings.Sources_Title}" />
 
         <TextBlock
             Margin="0,0,0,8"
             Style="{DynamicResource BodyStrongTextBlockStyle}"
-            Text="Sources ajoutées" />
+            Text="{x:Static res:Strings.Sources_SectionAdded}" />
 
         <!-- Une card par source : globe, nom, URL en ellipsis, Retirer dans le header ;
              dépliée, la card permet d'éditer la config (plusieurs presets invitent à ajuster
@@ -49,7 +49,7 @@
                                 <ui:Button
                                     Grid.Column="1"
                                     Margin="8,0"
-                                    Content="Retirer"
+                                    Content="{x:Static res:Strings.Sources_Remove}"
                                     Command="{Binding DataContext.Sources.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                     CommandParameter="{Binding}" />
                             </Grid>
@@ -58,11 +58,11 @@
                         <StackPanel>
                             <ui:TextBox
                                 Margin="0,0,0,8"
-                                PlaceholderText="URL de requête (https://…)"
+                                PlaceholderText="{x:Static res:Strings.Sources_PlaceholderUrl}"
                                 Text="{Binding RequestUrl, UpdateSourceTrigger=PropertyChanged}" />
                             <ui:TextBox
                                 Margin="0,0,0,8"
-                                PlaceholderText="Chemin JSON de l'URL d'image (ex. images[0].url)"
+                                PlaceholderText="{x:Static res:Strings.Sources_PlaceholderJsonPath}"
                                 Text="{Binding ImageUrlJsonPath, UpdateSourceTrigger=PropertyChanged}" />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -72,17 +72,17 @@
                                 <ui:TextBox
                                     Grid.Column="0"
                                     Margin="0,0,4,0"
-                                    PlaceholderText="En-tête API (ex. X-API-Key)"
+                                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderHeader}"
                                     Text="{Binding ApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
                                 <ui:PasswordBox
                                     Grid.Column="1"
                                     Margin="4,0,0,0"
-                                    PlaceholderText="Clé API (optionnel)"
+                                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderKey}"
                                     Password="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
                             <ui:Button
                                 HorizontalAlignment="Left"
-                                Content="Enregistrer les modifications"
+                                Content="{x:Static res:Strings.Sources_SaveChanges}"
                                 Command="{Binding DataContext.Sources.UpdateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                 CommandParameter="{Binding}" />
                         </StackPanel>
@@ -96,13 +96,13 @@
             <TextBlock
                 Style="{DynamicResource CaptionTextBlockStyle}"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="Aucune source ajoutée — choisissez-en une dans le catalogue ci-dessous." />
+                Text="{x:Static res:Strings.Sources_EmptyState}" />
         </ui:Card>
 
         <TextBlock
             Margin="0,24,0,8"
             Style="{DynamicResource BodyStrongTextBlockStyle}"
-            Text="Ajouter une source" />
+            Text="{x:Static res:Strings.Sources_SectionAdd}" />
 
         <ui:CardControl Margin="0,0,0,4">
             <ui:CardControl.Icon>
@@ -110,11 +110,11 @@
             </ui:CardControl.Icon>
             <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Depuis le catalogue" />
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Sources_CatalogTitle}" />
                     <TextBlock
                         Style="{DynamicResource CaptionTextBlockStyle}"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="Sources préconfigurées, prêtes à l'emploi" />
+                        Text="{x:Static res:Strings.Sources_CatalogDesc}" />
                 </StackPanel>
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">
@@ -125,7 +125,7 @@
                     SelectedItem="{Binding Sources.SelectedPreset}" />
                 <ui:Button
                     Margin="8,0,0,0"
-                    Content="Ajouter"
+                    Content="{x:Static res:Strings.Common_Add}"
                     Command="{Binding Sources.AddPresetCommand}" />
             </StackPanel>
         </ui:CardControl>
@@ -145,11 +145,11 @@
             </ui:CardControl.Icon>
             <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Clé API" />
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Sources_ApiKeyTitle}" />
                     <TextBlock
                         Style="{DynamicResource CaptionTextBlockStyle}"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="Requise pour cette source" />
+                        Text="{x:Static res:Strings.Sources_ApiKeyDesc}" />
                 </StackPanel>
             </ui:CardControl.Header>
             <ui:PasswordBox
@@ -164,26 +164,26 @@
             </ui:CardExpander.Icon>
             <ui:CardExpander.Header>
                 <StackPanel>
-                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Source personnalisée" />
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Sources_CustomTitle}" />
                     <TextBlock
                         Style="{DynamicResource CaptionTextBlockStyle}"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="Toute API JSON renvoyant une URL d'image, sans recompilation" />
+                        Text="{x:Static res:Strings.Sources_CustomDesc}" />
                 </StackPanel>
             </ui:CardExpander.Header>
 
             <StackPanel>
                 <ui:TextBox
                     Margin="0,0,0,8"
-                    PlaceholderText="Nom (ex. Mon API)"
+                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderName}"
                     Text="{Binding Sources.CustomName, UpdateSourceTrigger=PropertyChanged}" />
                 <ui:TextBox
                     Margin="0,0,0,8"
-                    PlaceholderText="URL de requête (https://…)"
+                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderUrl}"
                     Text="{Binding Sources.CustomUrl, UpdateSourceTrigger=PropertyChanged}" />
                 <ui:TextBox
                     Margin="0,0,0,8"
-                    PlaceholderText="Chemin JSON de l'URL d'image (ex. images[0].url)"
+                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderJsonPath}"
                     Text="{Binding Sources.CustomJsonPath, UpdateSourceTrigger=PropertyChanged}" />
                 <Grid Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
@@ -193,17 +193,17 @@
                     <ui:TextBox
                         Grid.Column="0"
                         Margin="0,0,4,0"
-                        PlaceholderText="En-tête API (ex. X-API-Key)"
+                        PlaceholderText="{x:Static res:Strings.Sources_PlaceholderHeader}"
                         Text="{Binding Sources.CustomApiKeyHeader, UpdateSourceTrigger=PropertyChanged}" />
                     <ui:PasswordBox
                         Grid.Column="1"
                         Margin="4,0,0,0"
-                        PlaceholderText="Clé API (optionnel)"
+                        PlaceholderText="{x:Static res:Strings.Sources_PlaceholderKey}"
                         Password="{Binding Sources.CustomApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
                 <ui:Button
                     HorizontalAlignment="Left"
-                    Content="Ajouter la source"
+                    Content="{x:Static res:Strings.Sources_AddCustom}"
                     Command="{Binding Sources.AddCustomCommand}" />
             </StackPanel>
         </ui:CardExpander>

@@ -7,7 +7,7 @@
 ; volontairement conservée à la désinstallation.
 
 #define MyAppName "Muralis"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Arkatul"
 #define MyAppURL "https://github.com/Arkatul/muralis"
 #define MyAppExeName "Muralis.exe"
@@ -41,11 +41,16 @@ CloseApplications=yes
 UsedUserAreasWarning=no
 
 [Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+
+[CustomMessages]
+english.StartupTask=Start {#MyAppName} when Windows starts (notification area)
+french.StartupTask=Lancer {#MyAppName} au démarrage de Windows (zone de notification)
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
-Name: "startup"; Description: "Lancer {#MyAppName} au démarrage de Windows (zone de notification)"
+Name: "startup"; Description: "{cm:StartupTask}"
 
 [Files]
 ; Publish single-file self-contained : l'essentiel est dans l'exe ; on copie le dossier
@@ -62,6 +67,10 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; \
     ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --minimized"; \
     Flags: uninsdeletevalue; Tasks: startup
+; Langue choisie dans l'assistant : amorce la langue de l'app au premier lancement
+; (consommée par LocalizationService uniquement si la config n'a pas encore de langue).
+Root: HKCU; Subkey: "Software\Muralis"; ValueType: string; ValueName: "PreferredLanguage"; \
+    ValueData: "{language}"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent

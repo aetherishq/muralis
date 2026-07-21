@@ -122,11 +122,14 @@ La checkbox "Start when Windows starts" dans les settings doit lire son état de
 - Toute couche réseau (fetch de source web) doit être async, annulable (`CancellationToken`), et ne jamais bloquer l'UI thread — le slideshow tourne en fond via un `DispatcherTimer` ou un `System.Threading.Timer` qui marshalle vers l'UI thread seulement pour l'appel `IDesktopWallpaper`.
 - Pas de dépendance à un framework DI lourd pour une V1 aussi petite — injection manuelle simple dans `App.xaml.cs` suffit.
 
+## Localisation (depuis V1.1)
+
+L'UI est multilingue : `src/Muralis/Resources/Strings.resx` (**anglais = langue neutre**) + `Strings.fr.resx`. **Toute nouvelle chaîne visible passe par ces deux fichiers** — jamais de littéral UI en dur (XAML : `{x:Static res:Strings.Clé}` ; C# : `Strings.Clé` / `string.Format(Strings.CléFormat, …)`), puis régénérer l'accessor avec `tools\gen-strings.ps1`. La langue (`AppConfig.Language`, null = Windows) s'applique **avant** toute construction d'UI ; un changement à chaud reconstruit fenêtre + tray + ViewModels (`App.ApplyLanguage`). Ne jamais traduire les identités persistées : `SourceType` (« LocalFolder »), noms des sources/presets.
+
 ## Hors scope V1 (ne pas implémenter sans qu'on en discute)
 
 - Mise à jour auto de l'app
 - Association de type de fichier
-- Support multi-langue de l'UI
 - Wallpapers vidéo/animés
 - Sync cloud de la config
 

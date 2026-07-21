@@ -35,8 +35,9 @@ public partial class SettingsWindow : FluentWindow
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        // Arrêt volontaire (menu « Quitter ») : laisser la fenêtre se fermer pour de bon.
-        if (Application.Current is App { IsExiting: true })
+        // Arrêt volontaire (« Quitter ») ou reconstruction de l'UI (changement de langue) :
+        // laisser la fenêtre se fermer pour de bon.
+        if (Application.Current is App app && (app.IsExiting || app.IsRecreatingUi))
         {
             base.OnClosing(e);
             return;
