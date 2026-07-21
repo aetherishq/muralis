@@ -1,5 +1,7 @@
 using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using Muralis.Models;
 
 namespace Muralis.Services.Sources;
@@ -24,9 +26,12 @@ public class WebWallpaperFetcher
     }
 
     /// <summary>
-    /// Télécharge une nouvelle image de la source. Retourne le chemin local du fichier,
-    /// ou <c>null</c> en cas d'échec (réseau, JSON inattendu…) — l'appelant garde alors
-    /// le fond courant et retentera au tick suivant.
+    /// Résout l'image courante de la source et la matérialise en fichier local. Le nom de
+    /// fichier est un hash de l'URL d'image : une URL déjà en cache n'est pas re-téléchargée
+    /// et rend le même chemin — l'appelant peut ainsi détecter « image inchangée » par simple
+    /// comparaison de chemins (source quotidienne, doublon d'une source aléatoire). Retourne
+    /// <c>null</c> en cas d'échec (réseau, JSON inattendu…) — l'appelant garde alors le fond
+    /// courant et retentera au tick suivant.
     /// </summary>
     public async Task<string?> FetchAsync(WallpaperSourceConfig source, CancellationToken ct)
     {
@@ -35,18 +40,23 @@ public class WebWallpaperFetcher
             var wallpaperSource = new HttpJsonSource(_http, source);
             Uri imageUrl = await wallpaperSource.GetImageUrlAsync(ct).ConfigureAwait(false);
 
-            byte[] bytes = await _http.GetByteArrayAsync(imageUrl, ct).ConfigureAwait(false);
-            if (bytes.Length == 0)
-                return null;
-
             string directory = Path.Combine(_cacheRoot, Sanitize(source.Name));
             Directory.CreateDirectory(directory);
 
-            string extension = GuessExtension(imageUrl);
-            string path = Path.Combine(directory, $"{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}{extension}");
-            await File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+            string fileName = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(imageUrl.AbsoluteUri)))[..16]
+                + GuessExtension(imageUrl);
+            string path = Path.Combine(directory, fileName);
 
-            Prune(directory, keepNewest: MaxCachedPerSource);
+            if (!File.Exists(path))
+            {
+                byte[] bytes = await _http.GetByteArrayAsync(imageUrl, ct).ConfigureAwait(false);
+                if (bytes.Length == 0)
+                    return null;
+
+                await File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+                Prune(directory, keepNewest: MaxCachedPerSource);
+            }
+
             return path;
         }
         catch (OperationCanceledException)

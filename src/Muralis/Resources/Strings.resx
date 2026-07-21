@@ -34,7 +34,7 @@
   <data name="Wallpapers_SlideshowTitle"><value>Slideshow</value></data>
   <data name="Wallpapers_SlideshowDesc"><value>Automatically change the image from a folder or a web source</value></data>
   <data name="Wallpapers_ImageSourceTitle"><value>Image source</value></data>
-  <data name="Wallpapers_ImageSourceDesc"><value>Local folder or web source</value></data>
+  <data name="Wallpapers_ImageSourceDesc"><value>Local folder or random web source</value></data>
   <data name="Wallpapers_FolderTitle"><value>Image folder</value></data>
   <data name="Wallpapers_NoFolderSelected"><value>No folder selected</value></data>
   <data name="Wallpapers_IntervalTitle"><value>Interval</value></data>
@@ -49,6 +49,8 @@
   <data name="Screen_AllScreens"><value>All screens</value></data>
   <data name="Screen_AllScreensDesc"><value>Same wallpaper on every monitor</value></data>
   <data name="Screen_LocalFolderOption"><value>Local folder</value></data>
+  <data name="Screen_LocalFileOption"><value>Local file</value></data>
+  <data name="Wallpapers_DailyAutoDesc"><value>Updated automatically every day</value></data>
   <data name="Screen_UnitMinutes"><value>minutes</value></data>
   <data name="Screen_UnitSeconds"><value>seconds</value></data>
   <data name="Dialog_ChooseImageFormat"><value>Choose an image — {0}</value></data>
@@ -83,6 +85,9 @@
   <data name="Sources_PlaceholderJsonPath"><value>JSON path of the image URL (e.g. images[0].url)</value></data>
   <data name="Sources_PlaceholderHeader"><value>API header (e.g. X-API-Key)</value></data>
   <data name="Sources_PlaceholderKey"><value>API key (optional)</value></data>
+  <data name="Sources_KindCaption"><value>Source type</value></data>
+  <data name="SourceKind_Random"><value>Random (slideshow)</value></data>
+  <data name="SourceKind_Daily"><value>Image of the day (fixed image)</value></data>
 
   <!-- Statuts page Sources -->
   <data name="Status_KeyRequired"><value>This source requires an API key.</value></data>

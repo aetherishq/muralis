@@ -12,24 +12,33 @@ namespace Muralis.ViewModels;
 /// Page « Sources web » : liste des sources ajoutées par l'utilisateur (persistées dans
 /// config.json), ajout depuis le catalogue de presets embarqué ou en source personnalisée
 /// (URL + chemin JSON, sans recompilation — cf. AGENTS.md). Sauvegarde immédiate.
-/// Maintient aussi <see cref="EditorSourceOptions"/>, la liste des choix de source offerte
-/// aux éditeurs d'écran (« Dossier local » + noms des sources ajoutées).
+/// Maintient aussi les deux listes de choix offertes aux éditeurs d'écran, routées par
+/// <see cref="SourceKind"/> : <see cref="EditorRandomOptions"/> (diaporama) et
+/// <see cref="EditorDailyOptions"/> (card Image, sources quotidiennes).
 /// </summary>
 public partial class SourcesViewModel : ObservableObject
 {
+    /// <summary>Choix de type d'une source personnalisée.</summary>
+    public sealed record KindOption(SourceKind Value, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
     private readonly ConfigService _configService;
 
     public SourcesViewModel(ConfigService configService)
     {
         _configService = configService;
 
-        EditorSourceOptions.Add(ScreenSettingsViewModel.LocalFolderOption);
+        EditorRandomOptions.Add(ScreenSettingsViewModel.LocalFolderOption);
+        EditorDailyOptions.Add(ScreenSettingsViewModel.LocalFileOption);
         foreach (var source in configService.Load().Sources)
         {
             Sources.Add(source);
-            EditorSourceOptions.Add(source.Name);
+            OptionsFor(source.Kind).Add(source.Name);
         }
         RefreshAvailablePresets();
+        selectedKind = KindOptions[0];
 
         Sources.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoSources));
     }
@@ -37,11 +46,24 @@ public partial class SourcesViewModel : ObservableObject
     /// <summary>Vrai quand aucune source n'est ajoutée (état vide de la page).</summary>
     public bool HasNoSources => Sources.Count == 0;
 
-    /// <summary>Sources ajoutées (affichées sur la page, référencées par les diaporamas).</summary>
+    /// <summary>Sources ajoutées (affichées sur la page, référencées par les écrans).</summary>
     public ObservableCollection<WallpaperSourceConfig> Sources { get; } = [];
 
-    /// <summary>Choix proposés dans les éditeurs d'écran : « Dossier local » + sources ajoutées.</summary>
-    public ObservableCollection<string> EditorSourceOptions { get; } = [];
+    /// <summary>Choix du diaporama : « Dossier local » + sources aléatoires.</summary>
+    public ObservableCollection<string> EditorRandomOptions { get; } = [];
+
+    /// <summary>Choix de la card Image : « Fichier local » + sources quotidiennes.</summary>
+    public ObservableCollection<string> EditorDailyOptions { get; } = [];
+
+    public IReadOnlyList<KindOption> KindOptions { get; } =
+    [
+        new(SourceKind.Random, Strings.SourceKind_Random),
+        new(SourceKind.Daily, Strings.SourceKind_Daily),
+    ];
+
+    /// <summary>Type choisi pour la prochaine source personnalisée.</summary>
+    [ObservableProperty]
+    private KindOption selectedKind;
 
     /// <summary>Presets du catalogue pas encore ajoutés.</summary>
     public ObservableCollection<SourcePreset> AvailablePresets { get; } = [];
@@ -100,6 +122,7 @@ public partial class SourcesViewModel : ObservableObject
         var source = new WallpaperSourceConfig
         {
             Name = CustomName.Trim(),
+            Kind = SelectedKind.Value,
             RequestUrl = CustomUrl.Trim(),
             ImageUrlJsonPath = CustomJsonPath.Trim(),
             ApiKeyHeader = CustomApiKeyHeader.Trim(),
@@ -121,6 +144,7 @@ public partial class SourcesViewModel : ObservableObject
         if (KeyWithoutHeader(source))
             StatusMessage = string.Format(Strings.Status_AddedNoHeaderFormat, source.Name);
         CustomName = CustomUrl = CustomJsonPath = CustomApiKeyHeader = CustomApiKey = string.Empty;
+        SelectedKind = KindOptions[0];
     }
 
     /// <summary>
@@ -163,7 +187,7 @@ public partial class SourcesViewModel : ObservableObject
     private void Remove(WallpaperSourceConfig source)
     {
         Sources.Remove(source);
-        EditorSourceOptions.Remove(source.Name);
+        OptionsFor(source.Kind).Remove(source.Name);
 
         var config = _configService.Load();
         config.Sources.RemoveAll(s => s.Name == source.Name);
@@ -182,7 +206,7 @@ public partial class SourcesViewModel : ObservableObject
         }
 
         Sources.Add(source);
-        EditorSourceOptions.Add(source.Name);
+        OptionsFor(source.Kind).Add(source.Name);
 
         var config = _configService.Load();
         config.Sources.Add(source);
@@ -191,8 +215,13 @@ public partial class SourcesViewModel : ObservableObject
         StatusMessage = string.Format(Strings.Status_AddedFormat, source.Name);
     }
 
+    /// <summary>Collection d'options d'éditeur correspondant au type de source.</summary>
+    private ObservableCollection<string> OptionsFor(SourceKind kind) =>
+        kind == SourceKind.Daily ? EditorDailyOptions : EditorRandomOptions;
+
     private bool IsNameTaken(string name) =>
         name == ScreenSettingsViewModel.LocalFolderOption
+        || name == ScreenSettingsViewModel.LocalFileOption
         || Sources.Any(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
     private void RefreshAvailablePresets()

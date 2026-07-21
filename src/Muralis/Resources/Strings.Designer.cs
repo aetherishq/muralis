@@ -36,6 +36,7 @@ public static class Strings
     public static string Screen_AllScreens => Get(nameof(Screen_AllScreens));
     public static string Screen_AllScreensDesc => Get(nameof(Screen_AllScreensDesc));
     public static string Screen_LabelFormat => Get(nameof(Screen_LabelFormat));
+    public static string Screen_LocalFileOption => Get(nameof(Screen_LocalFileOption));
     public static string Screen_LocalFolderOption => Get(nameof(Screen_LocalFolderOption));
     public static string Screen_UnitMinutes => Get(nameof(Screen_UnitMinutes));
     public static string Screen_UnitSeconds => Get(nameof(Screen_UnitSeconds));
@@ -46,6 +47,8 @@ public static class Strings
     public static string Settings_ThemeDesc => Get(nameof(Settings_ThemeDesc));
     public static string Settings_ThemeTitle => Get(nameof(Settings_ThemeTitle));
     public static string Settings_Title => Get(nameof(Settings_Title));
+    public static string SourceKind_Daily => Get(nameof(SourceKind_Daily));
+    public static string SourceKind_Random => Get(nameof(SourceKind_Random));
     public static string Sources_AddCustom => Get(nameof(Sources_AddCustom));
     public static string Sources_ApiKeyDesc => Get(nameof(Sources_ApiKeyDesc));
     public static string Sources_ApiKeyTitle => Get(nameof(Sources_ApiKeyTitle));
@@ -54,6 +57,7 @@ public static class Strings
     public static string Sources_CustomDesc => Get(nameof(Sources_CustomDesc));
     public static string Sources_CustomTitle => Get(nameof(Sources_CustomTitle));
     public static string Sources_EmptyState => Get(nameof(Sources_EmptyState));
+    public static string Sources_KindCaption => Get(nameof(Sources_KindCaption));
     public static string Sources_PlaceholderHeader => Get(nameof(Sources_PlaceholderHeader));
     public static string Sources_PlaceholderJsonPath => Get(nameof(Sources_PlaceholderJsonPath));
     public static string Sources_PlaceholderKey => Get(nameof(Sources_PlaceholderKey));
@@ -82,6 +86,7 @@ public static class Strings
     public static string Tray_NextImage => Get(nameof(Tray_NextImage));
     public static string Tray_Quit => Get(nameof(Tray_Quit));
     public static string Tray_Settings => Get(nameof(Tray_Settings));
+    public static string Wallpapers_DailyAutoDesc => Get(nameof(Wallpapers_DailyAutoDesc));
     public static string Wallpapers_DisplayModeDesc => Get(nameof(Wallpapers_DisplayModeDesc));
     public static string Wallpapers_DisplayModeTitle => Get(nameof(Wallpapers_DisplayModeTitle));
     public static string Wallpapers_FolderTitle => Get(nameof(Wallpapers_FolderTitle));

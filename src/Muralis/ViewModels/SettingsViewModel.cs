@@ -121,7 +121,7 @@ public partial class SettingsViewModel : ObservableObject
         foreach (var monitor in _monitors)
         {
             var screenConfig = config.FindScreen(monitor.DeviceId) ?? new ScreenConfig { DeviceId = monitor.DeviceId };
-            var screen = new ScreenSettingsViewModel(index++, monitor, screenConfig, Sources.EditorSourceOptions);
+            var screen = new ScreenSettingsViewModel(index++, monitor, screenConfig, Sources.EditorRandomOptions, Sources.EditorDailyOptions);
             screen.SetSelectorGeometry(
                 (monitor.Bounds.Left - originX) * scale,
                 (monitor.Bounds.Top - originY) * scale,
@@ -132,7 +132,7 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         SelectedScreen = Screens.FirstOrDefault();
-        UnifiedScreen = new ScreenSettingsViewModel(config.UnifiedConfig, Sources.EditorSourceOptions);
+        UnifiedScreen = new ScreenSettingsViewModel(config.UnifiedConfig, Sources.EditorRandomOptions, Sources.EditorDailyOptions);
     }
 
     [RelayCommand]

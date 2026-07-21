@@ -11,6 +11,9 @@ public class WallpaperSourceConfig
     /// <summary>Nom unique affiché dans l'UI et référencé par <see cref="ScreenConfig.SourceType"/>.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Nature de la source : aléatoire (diaporama) ou image du jour (mode fixe).</summary>
+    public SourceKind Kind { get; set; } = SourceKind.Random;
+
     public string RequestUrl { get; set; } = string.Empty;
 
     /// <summary>Chemin vers l'URL d'image dans la réponse JSON, ex. <c>images[0].url</c> ou <c>[0].file_url</c>.</summary>

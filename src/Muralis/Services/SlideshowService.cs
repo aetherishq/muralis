@@ -93,27 +93,46 @@ public class SlideshowService
         _targets.Clear();
     }
 
+    /// <summary>Cadence interne de re-vérification des sources quotidiennes (non configurable).</summary>
+    private static readonly TimeSpan DailyRefreshInterval = TimeSpan.FromHours(1);
+
     private void TryAddTarget(AppConfig config, ScreenConfig screen, Action<string> apply)
     {
-        if (screen.Mode != WallpaperMode.Slideshow)
-            return;
+        WallpaperSourceConfig? webSource;
+        TimeSpan interval;
 
-        WallpaperSourceConfig? webSource = null;
-        if (screen.SourceType == LocalFolderSourceType || string.IsNullOrEmpty(screen.SourceType))
+        if (screen.Mode == WallpaperMode.Slideshow)
         {
-            if (!Directory.Exists(screen.SourcePath))
-                return;
+            webSource = null;
+            if (screen.SourceType == LocalFolderSourceType || string.IsNullOrEmpty(screen.SourceType))
+            {
+                if (!Directory.Exists(screen.SourcePath))
+                    return;
+            }
+            else
+            {
+                webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType && s.Kind == SourceKind.Random);
+                if (webSource is null || !webSource.IsValid)
+                    return; // Source supprimée, incomplète ou non aléatoire : cible ignorée.
+            }
+
+            // Plancher de sécurité : composition locale à 5 s min, requêtes web à 60 s min.
+            var minInterval = webSource is null ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1);
+            interval = screen.SlideshowInterval < minInterval ? minInterval : screen.SlideshowInterval;
         }
         else
         {
-            webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType);
-            if (webSource is null || !webSource.IsValid)
-                return; // Source supprimée ou incomplète : cible ignorée.
-        }
+            // Mode fixe : seule une source quotidienne crée une cible (re-vérification
+            // périodique, ré-application uniquement quand l'image du jour change) —
+            // un fichier local est statique et posé par WallpaperService.Apply.
+            if (screen.SourceType == ScreenConfig.LocalFileSourceType || string.IsNullOrEmpty(screen.SourceType))
+                return;
 
-        // Plancher de sécurité : composition locale à 5 s min, requêtes web à 60 s min.
-        var minInterval = webSource is null ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1);
-        var interval = screen.SlideshowInterval < minInterval ? minInterval : screen.SlideshowInterval;
+            webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType && s.Kind == SourceKind.Daily);
+            if (webSource is null || !webSource.IsValid)
+                return;
+            interval = DailyRefreshInterval;
+        }
 
         var target = new SlideshowTarget(screen, apply, webSource)
         {
@@ -168,7 +187,14 @@ public class SlideshowService
                 return;
             }
 
+            // Le cache est nommé par hash d'URL : même chemin = même image (source
+            // quotidienne pas encore renouvelée, ou doublon d'une source aléatoire) —
+            // inutile de recomposer/re-poser.
+            if (path == target.LastImage)
+                return;
+
             target.Apply(path);
+            target.LastImage = path;
             WallpaperApplied?.Invoke();
         }
         catch (OperationCanceledException)

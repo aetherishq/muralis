@@ -80,10 +80,20 @@
                                 Style="{DynamicResource CaptionTextBlockStyle}"
                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                 TextTrimming="CharacterEllipsis"
-                                Text="{Binding ImagePath, TargetNullValue={x:Static res:Strings.Wallpapers_NoImageSelected}}" />
+                                Text="{Binding FixedSourceDescription}" />
                         </StackPanel>
                     </ui:CardControl.Header>
-                    <ui:Button Content="{x:Static res:Strings.Common_Browse}" Command="{Binding BrowseCommand}" />
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox
+                            MinWidth="180"
+                            ItemsSource="{Binding FixedSourceOptions}"
+                            SelectedItem="{Binding SelectedFixedSource}" />
+                        <ui:Button
+                            Margin="8,0,0,0"
+                            Content="{x:Static res:Strings.Common_Browse}"
+                            Command="{Binding BrowseCommand}"
+                            Visibility="{Binding IsLocalFile, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </ui:CardControl>
 
                 <!-- Diaporama : toggle dans le header, sous-réglages dépliés (DESIGN.md — cards) -->
