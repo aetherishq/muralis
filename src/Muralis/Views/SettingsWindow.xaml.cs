@@ -1,31 +1,36 @@
 using System.ComponentModel;
 using System.Windows;
 using Muralis.ViewModels;
+using Muralis.Views.Pages;
 using Wpf.Ui.Controls;
 
 namespace Muralis.Views;
 
 /// <summary>
-/// Fenêtre de paramètres. Ne se ferme jamais : sur <c>Closing</c> elle se masque, pour que
-/// l'app continue de vivre dans le tray (elle est ré-affichée depuis l'icône).
+/// Fenêtre de paramètres : coquille NavigationView (pane gauche) hébergeant les trois pages.
+/// Ne se ferme jamais : sur <c>Closing</c> elle se masque, pour que l'app continue de vivre
+/// dans le tray (elle est ré-affichée depuis l'icône).
 /// </summary>
 public partial class SettingsWindow : FluentWindow
 {
+    private bool _navigated;
+
     public SettingsWindow(SettingsViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
+        RootNavigation.SetPageProviderService(new NavigationPageProvider(viewModel));
+        Loaded += OnLoaded;
     }
 
-    /// <summary>Ouvre le menu de navigation (le ContextMenu du bouton hamburger) au clic gauche.</summary>
-    private void OnHamburgerClick(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { ContextMenu: { } menu } element)
-        {
-            menu.PlacementTarget = element;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-            menu.IsOpen = true;
-        }
+        // Page initiale — une seule fois : la fenêtre se masque/ré-affiche (re-Loaded)
+        // et l'utilisateur doit retrouver la page où il était.
+        if (_navigated)
+            return;
+        _navigated = true;
+        RootNavigation.Navigate(typeof(WallpapersPage));
     }
 
     protected override void OnClosing(CancelEventArgs e)

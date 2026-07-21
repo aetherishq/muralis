@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -12,48 +13,62 @@ namespace Muralis.ViewModels;
 /// <summary>
 /// Réglages d'une cible de fond d'écran : soit un moniteur précis (mode config par écran),
 /// soit l'ensemble des écrans (mode unifié). Deux alimentations possibles : image fixe
-/// (<see cref="ImagePath"/>) ou diaporama d'un dossier local (<see cref="FolderPath"/> +
-/// <see cref="IntervalMinutes"/> + <see cref="Shuffle"/>), basculées par <see cref="IsSlideshow"/>.
-/// Un aperçu au ratio de l'écran est affiché : l'image choisie en fixe, une mosaïque de
-/// 4 miniatures du dossier en diaporama.
+/// (<see cref="ImagePath"/>) ou diaporama (<see cref="FolderPath"/> ou source web +
+/// <see cref="IntervalValue"/> + <see cref="Shuffle"/>), basculées par <see cref="IsSlideshow"/>.
+/// Porte aussi la géométrie de son rectangle dans le sélecteur d'écrans (proportionnel à la
+/// disposition réelle des moniteurs, cf. DESIGN.md) et la miniature du fond actuellement appliqué.
 /// </summary>
 public partial class ScreenSettingsViewModel : ObservableObject
 {
+    /// <summary>Libellé UI du choix « dossier local » dans la liste des sources de diaporama.</summary>
+    public const string LocalFolderOption = "Dossier local";
+
     /// <summary>Largeur de décodage des miniatures : évite de charger les images pleine taille.</summary>
     private const int ThumbnailDecodeWidth = 480;
 
-    /// <summary>Hauteur commune de tous les aperçus : garde les cartes alignées entre elles.</summary>
-    private const double PreviewBoxHeight = 150;
+    /// <summary>Hauteur d'une cellule de la grille de miniatures du dossier local.</summary>
+    private const double ThumbnailCellBoxHeight = 72;
 
     private readonly MonitorInfo? _monitor;
 
     /// <summary>Cible = un moniteur précis (config séparée par écran).</summary>
-    public ScreenSettingsViewModel(int index, MonitorInfo monitor, ScreenConfig config)
+    public ScreenSettingsViewModel(int index, MonitorInfo monitor, ScreenConfig config, ObservableCollection<string> sourceOptions)
     {
         _monitor = monitor;
+        Number = index;
         DisplayLabel = $"Écran {index}";
         ResolutionLabel = monitor.ResolutionLabel;
+        SourceOptions = sourceOptions;
         // Span n'a pas de sens sur un seul écran : réservé au mode unifié.
         AvailableModes = ModesExcept(DesktopWallpaperPosition.Span);
-        SetupPreview((double)monitor.Width / monitor.Height);
+        SetupThumbnailCell((double)monitor.Width / monitor.Height);
         LoadFrom(config);
         if (DisplayMode == DesktopWallpaperPosition.Span)
             DisplayMode = DesktopWallpaperPosition.Fill;
     }
 
-    /// <summary>Cible = tous les écrans (mode unifié). Span autorisé, aperçu en 16:9.</summary>
-    public ScreenSettingsViewModel(ScreenConfig config)
+    /// <summary>Cible = tous les écrans (mode unifié). Span autorisé, miniatures en 16:9.</summary>
+    public ScreenSettingsViewModel(ScreenConfig config, ObservableCollection<string> sourceOptions)
     {
         _monitor = null;
+        Number = 0;
         DisplayLabel = "Tous les écrans";
         ResolutionLabel = "Même fond sur tous les moniteurs";
+        SourceOptions = sourceOptions;
         AvailableModes = Enum.GetValues<DesktopWallpaperPosition>();
-        SetupPreview(16.0 / 9.0);
+        SetupThumbnailCell(16.0 / 9.0);
         LoadFrom(config);
     }
 
+    /// <summary>Choix de source du diaporama : « Dossier local » + sources web ajoutées
+    /// (collection partagée, mise à jour en direct par la page Sources).</summary>
+    public ObservableCollection<string> SourceOptions { get; }
+
     /// <summary>Device path du moniteur ciblé (vide en mode unifié).</summary>
     public string DeviceId => _monitor?.DeviceId ?? string.Empty;
+
+    /// <summary>Numéro affiché dans le rectangle du sélecteur d'écrans (0 en mode unifié).</summary>
+    public int Number { get; }
 
     public string DisplayLabel { get; }
 
@@ -62,24 +77,39 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// <summary>Modes proposés dans le ComboBox (dépend de la cible).</summary>
     public IReadOnlyList<DesktopWallpaperPosition> AvailableModes { get; }
 
-    /// <summary>Dimensions de l'aperçu fixe, au ratio de l'écran ciblé (hauteur commune à toutes les cartes).</summary>
-    public double PreviewWidth { get; private set; }
+    /// <summary>Position/taille du rectangle dans le sélecteur d'écrans, en pixels du canvas
+    /// (géométrie réelle des moniteurs mise à l'échelle par <see cref="SettingsViewModel.Load"/>).</summary>
+    public double SelectorLeft { get; private set; }
 
-    public double PreviewHeight { get; private set; }
+    public double SelectorTop { get; private set; }
 
-    /// <summary>
-    /// Largeur de la mosaïque du diaporama. Écran paysage : même boîte que l'aperçu fixe (grille 2×2).
-    /// Écran portrait : 4 cases au ratio de l'écran alignées en une rangée, pour que la carte garde
-    /// un encombrement comparable aux écrans paysage.
-    /// </summary>
-    public double SlideshowPreviewWidth { get; private set; }
+    public double SelectorWidth { get; private set; }
 
-    public int MosaicColumns { get; private set; }
+    public double SelectorHeight { get; private set; }
 
-    public int MosaicRows { get; private set; }
+    /// <summary>Dimensions d'une cellule de la grille de miniatures, au ratio de l'écran.</summary>
+    public double ThumbnailCellWidth { get; private set; }
+
+    public double ThumbnailCellHeight { get; private set; }
+
+    /// <summary>Miniature du fond actuellement appliqué sur ce moniteur (affichée dans le sélecteur).</summary>
+    [ObservableProperty]
+    private ImageSource? currentWallpaper;
+
+    /// <summary>Fixe la géométrie du rectangle du sélecteur (appelé avant insertion dans la liste bindée).</summary>
+    public void SetSelectorGeometry(double left, double top, double width, double height)
+    {
+        SelectorLeft = left;
+        SelectorTop = top;
+        SelectorWidth = width;
+        SelectorHeight = height;
+    }
+
+    /// <summary>Recharge la miniature du fond appliqué depuis son chemin (null : pas d'aperçu).</summary>
+    public void SetCurrentWallpaper(string? path) => CurrentWallpaper = LoadThumbnail(path);
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowFixed), nameof(ShowSlideshow), nameof(ShowFixedPreview), nameof(ShowSlideshowPreview))]
+    [NotifyPropertyChangedFor(nameof(ShowFixed), nameof(ShowSlideshow), nameof(ShowSlideshowPreview))]
     private bool isSlideshow;
 
     public bool ShowFixed => !IsSlideshow;
@@ -88,6 +118,13 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string? imagePath;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLocalSource), nameof(ShowSlideshowPreview))]
+    private string selectedSource = LocalFolderOption;
+
+    /// <summary>Vrai si le diaporama puise dans un dossier local (sinon : source web).</summary>
+    public bool IsLocalSource => SelectedSource == LocalFolderOption;
 
     [ObservableProperty]
     private string? folderPath;
@@ -124,18 +161,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
     private DesktopWallpaperPosition displayMode;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowFixedPreview))]
-    private ImageSource? previewImage;
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowSlideshowPreview))]
     private IReadOnlyList<ImageSource> previewThumbnails = [];
 
-    public bool ShowFixedPreview => ShowFixed && PreviewImage is not null;
-
-    public bool ShowSlideshowPreview => ShowSlideshow && PreviewThumbnails.Count > 0;
-
-    partial void OnImagePathChanged(string? value) => PreviewImage = LoadThumbnail(value);
+    public bool ShowSlideshowPreview => ShowSlideshow && IsLocalSource && PreviewThumbnails.Count > 0;
 
     partial void OnFolderPathChanged(string? value) => PreviewThumbnails = LoadFolderThumbnails(value);
 
@@ -178,8 +207,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
         {
             DeviceId = DeviceId,
             Mode = IsSlideshow ? WallpaperMode.Slideshow : WallpaperMode.Fixed,
-            SourceType = IsSlideshow ? "LocalFolder" : "LocalFile",
-            SourcePath = (IsSlideshow ? FolderPath : ImagePath) ?? string.Empty,
+            SourceType = !IsSlideshow ? "LocalFile"
+                : IsLocalSource ? SlideshowService.LocalFolderSourceType
+                : SelectedSource,
+            SourcePath = (IsSlideshow ? (IsLocalSource ? FolderPath : null) : ImagePath) ?? string.Empty,
             SlideshowInterval = interval,
             Shuffle = Shuffle,
             DisplayMode = DisplayMode,
@@ -190,9 +221,18 @@ public partial class ScreenSettingsViewModel : ObservableObject
     {
         IsSlideshow = config.Mode == WallpaperMode.Slideshow;
         if (IsSlideshow)
-            FolderPath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
+        {
+            bool isWeb = !string.IsNullOrEmpty(config.SourceType)
+                && config.SourceType != SlideshowService.LocalFolderSourceType
+                && SourceOptions.Contains(config.SourceType);
+            SelectedSource = isWeb ? config.SourceType : LocalFolderOption;
+            if (!isWeb)
+                FolderPath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
+        }
         else
+        {
             ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
+        }
         var interval = config.SlideshowInterval > TimeSpan.Zero ? config.SlideshowInterval : TimeSpan.FromMinutes(30);
         // Affiche en minutes quand l'intervalle tombe rond, en secondes sinon.
         bool wholeMinutes = interval >= TimeSpan.FromMinutes(1) && interval.TotalSeconds % 60 == 0;
@@ -202,15 +242,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
         DisplayMode = config.DisplayMode;
     }
 
-    private void SetupPreview(double aspectRatio)
+    private void SetupThumbnailCell(double aspectRatio)
     {
-        PreviewHeight = PreviewBoxHeight;
-        PreviewWidth = PreviewBoxHeight * aspectRatio;
-
-        bool portrait = aspectRatio < 1;
-        MosaicColumns = portrait ? 4 : 2;
-        MosaicRows = portrait ? 1 : 2;
-        SlideshowPreviewWidth = portrait ? 4 * PreviewWidth : PreviewWidth;
+        ThumbnailCellHeight = ThumbnailCellBoxHeight;
+        ThumbnailCellWidth = Math.Round(ThumbnailCellBoxHeight * aspectRatio);
     }
 
     private static ImageSource? LoadThumbnail(string? path)
@@ -242,9 +277,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
         try
         {
+            // 2 rangées de 4 au maximum (grille de miniatures, cf. DESIGN.md).
             return ImageFiles.Enumerate(folder)
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                .Take(4)
+                .Take(8)
                 .Select(LoadThumbnail)
                 .OfType<ImageSource>()
                 .ToArray();

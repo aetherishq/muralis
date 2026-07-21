@@ -77,6 +77,24 @@ public class WallpaperService
         }
     }
 
+    /// <summary>
+    /// Chemin du fond actuellement appliqué sur un moniteur (lecture seule, pour l'aperçu du
+    /// sélecteur d'écrans). Null si Windows ne peut pas le fournir.
+    /// </summary>
+    public string? GetWallpaper(string deviceId)
+    {
+        try
+        {
+            var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
+            string path = wallpaper.GetWallpaper(deviceId);
+            return string.IsNullOrEmpty(path) ? null : path;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private static bool HasImage(ScreenConfig screen) =>
         !string.IsNullOrEmpty(screen.SourcePath) && File.Exists(screen.SourcePath);
 }

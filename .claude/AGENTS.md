@@ -39,8 +39,6 @@ public class ScreenConfig
 
 Toujours identifier les écrans par leur **device path** (via `IDesktopWallpaper.GetMonitorDevicePathAt`), jamais par un index d'écran — l'ordre peut changer entre deux sessions Windows (reconnexion, changement de résolution, etc.).
 
-**Config unifiée vs séparée (au niveau app, pas par écran).** `AppConfig` porte un booléen `Unified` + un `UnifiedConfig` (une `ScreenConfig`). Vrai → un même fond s'applique à tous les écrans ; faux → chaque écran a sa propre `ScreenConfig` dans `Screens`. L'UI expose ce choix par une simple case à cocher « même fond pour tous les écrans ». Ce toggle explicite remplace l'ancienne idée de désactiver les autres écrans quand `span` est choisi (voir section `span` plus bas).
-
 ### Interop natif — API Windows à utiliser en priorité
 
 Utiliser `IDesktopWallpaper` (COM, dispo depuis Windows 8) plutôt que `SystemParametersInfo` — c'est l'API qui gère nativement le multi-écran et le mode d'affichage par moniteur.
@@ -56,9 +54,7 @@ Mapping direct avec les modes demandés en V1 :
 | center   | `DWPOS_CENTER`                  |
 | span     | `DWPOS_SPAN`                    |
 
-**Contrainte importante : `IDesktopWallpaper::SetPosition` est global à tous les écrans**, il n'existe pas de position par moniteur native. En revanche `SetWallpaper(monitorID, path)` est bien par moniteur. Pour obtenir un mode d'affichage réellement indépendant par écran, on **pré-compose** chaque image à la résolution pixel exacte du moniteur (imaging WPF, `RenderTargetBitmap` — pas de `System.Drawing.Common`), puis on l'assigne à ce moniteur avec une position globale neutre `DWPOS_FILL` (l'image étant déjà au bon format, rendu 1:1). Voir `WallpaperComposer` / `WallpaperService`.
-
-`span` traite tous les moniteurs comme une seule surface : il n'est proposé **que** dans le mode unifié (case « même fond pour tous »). Dans ce cas on délègue à Windows nativement — `SetPosition(DWPOS_SPAN)` + `SetWallpaper(null, image)` (null = tous les moniteurs), sans pré-composition. En mode séparé, `span` n'est pas offert.
+`span` traite tous les moniteurs comme une seule surface — le combiner avec un choix "séparé par écran" n'a pas de sens fonctionnel ; désactiver/masquer les autres réglages par écran dans l'UI quand `span` est sélectionné sur un écran.
 
 ### Abstraction des sources web
 
@@ -115,6 +111,10 @@ public static void SetStartup(bool enable)
 
 La checkbox "Start when Windows starts" dans les settings doit lire son état depuis le registre directement (`key.GetValue(AppName) != null`), jamais depuis une valeur miroir dans `config.json` — sinon désync possible si l'utilisateur modifie le registre à la main.
 
+## Design de l'UI
+
+**Toute modification de XAML ou création de fenêtre/page doit respecter `.claude/DESIGN.md`** (règles Fluent 2 / WPF-UI : cards, espacements, typographie, patterns par page). Lire ce fichier avant tout travail visuel. En cas de pattern incertain, consulter les articles Microsoft Learn listés dans DESIGN.md via le MCP Microsoft Learn plutôt qu'improviser. Ne pas proposer de migration vers WinUI 3 : décision déjà tranchée (voir Stack), le niveau de finition visé est atteignable en WPF-UI.
+
 ## Conventions de code
 
 - MVVM (CommunityToolkit.Mvvm pour `[ObservableProperty]` / `[RelayCommand]`, pas de framework MVVM plus lourd).
@@ -131,6 +131,10 @@ La checkbox "Start when Windows starts" dans les settings doit lire son état de
 - Sync cloud de la config
 
 ## Environnement de dev
+
+### Captures d'écran des itérations
+
+Les captures de validation visuelle sont déposées dans `C:\Users\alexi\Pictures\Screenshots` (éventuellement un sous-dossier par sujet, ex. `muralis\`). Quand l'utilisateur dit « screenshot 3 » / « capture 3 », cela désigne le fichier `3.png` le plus récent de ce dossier — pas besoin qu'il re-précise le chemin.
 
 Terminal Windows natif (PowerShell 7+ recommandé, `cmd.exe` fonctionne aussi) — **pas WSL**. WPF dépend d'API Win32/COM natives (`IDesktopWallpaper`, registre `HKCU`, rendu DirectX/PresentationCore) qui n'existent pas sous Linux ; même si `dotnet build` peut techniquement restaurer/compiler une cible `net10.0-windows` depuis WSL, l'app ne peut ni s'exécuter ni être testée dans cet environnement. Inno Setup est également un outil Windows natif.
 
