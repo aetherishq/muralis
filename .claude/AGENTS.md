@@ -124,6 +124,10 @@ La checkbox "Start when Windows starts" dans les settings doit lire son état de
 
 L'UI est multilingue : `src/Muralis/Resources/Strings.resx` (**anglais = langue neutre**) + `Strings.fr.resx`. **Toute nouvelle chaîne visible passe par ces deux fichiers** — jamais de littéral UI en dur (XAML : `{x:Static res:Strings.Clé}` ; C# : `Strings.Clé` / `string.Format(Strings.CléFormat, …)`), puis régénérer l'accessor avec `tools\gen-strings.ps1`. La langue (`AppConfig.Language`, null = Windows) s'applique **avant** toute construction d'UI ; un changement à chaud reconstruit fenêtre + tray + ViewModels (`App.ApplyLanguage`). Ne jamais traduire les identités persistées : `SourceType` (« LocalFolder »), noms des sources/presets.
 
+## Documentation publique (depuis V1.2.1)
+
+Le repo a un `README.md` (anglais) avec captures (`assets/screenshots/`) et une licence **GPL-3.0** (`LICENSE`). **Toute feature visible utilisateur doit être reflétée dans README.md** (section Features, captures si le visuel change significativement). **Les notes de release GitHub sont rédigées en anglais** (cohérence avec le README ; l'installeur, lui, reste bilingue).
+
 ## Hors scope V1 (ne pas implémenter sans qu'on en discute)
 
 - Mise à jour auto de l'app
