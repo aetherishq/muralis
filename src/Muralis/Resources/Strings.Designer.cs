@@ -30,8 +30,6 @@ public static class Strings
     public static string Nav_WebSources => Get(nameof(Nav_WebSources));
     public static string Option_System => Get(nameof(Option_System));
     public static string Preset_BingNote => Get(nameof(Preset_BingNote));
-    public static string Preset_DanbooruNote => Get(nameof(Preset_DanbooruNote));
-    public static string Preset_E621Note => Get(nameof(Preset_E621Note));
     public static string Preset_WallhavenNote => Get(nameof(Preset_WallhavenNote));
     public static string Screen_AllScreens => Get(nameof(Screen_AllScreens));
     public static string Screen_AllScreensDesc => Get(nameof(Screen_AllScreensDesc));

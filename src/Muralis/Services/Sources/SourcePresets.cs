@@ -56,19 +56,10 @@ public static class SourcePresets
             RequestUrl = "https://wallhaven.cc/api/v1/search?sorting=random&categories=111&purity=100",
             ImageUrlJsonPath = "data[0].path",
         },
-        new("danbooru", "Danbooru", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
-        {
-            RequestUrl = "https://danbooru.donmai.us/posts/random.json",
-            ImageUrlJsonPath = "file_url",
-        },
-        new("e621", "e621", RequiresKey: false, nameof(Strings.Preset_E621Note))
-        {
-            RequestUrl = "https://e621.net/posts.json?limit=1&tags=order:random+rating:s",
-            ImageUrlJsonPath = "posts[0].file.url",
-        },
-
-        // Gelbooru et Rule34 exigent désormais une authentification par api_key/user_id dans
-        // l'URL (401/« Missing authentication » constatés) : retirés du catalogue. Restent
-        // utilisables en source personnalisée, clé incluse dans l'URL de requête.
+        // Catalogue volontairement réduit à Bing + Wallhaven (V1.2, issue #14). Gelbooru et
+        // Rule34 exigeaient de toute façon une auth api_key/user_id (401 constatés) ;
+        // Danbooru, e621 et le reste passent par la source personnalisée (URL + chemin
+        // JSON + en-tête libre), sous la responsabilité de l'utilisateur. Les instances
+        // déjà ajoutées continuent de fonctionner : leur config est persistée.
     ];
 }

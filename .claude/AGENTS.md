@@ -5,7 +5,7 @@ Ce fichier cadre les décisions déjà prises pour que Claude Code n'ait pas à 
 
 ## Résumé du projet
 
-Muralis permet de configurer, écran par écran, un fond d'écran fixe, un slideshow local (répertoire), ou un slideshow depuis une source web (Bing, Unsplash, etc.), avec un mode d'affichage indépendant par écran (stretch/fit/fill/tile/center/span).
+Muralis permet de configurer, écran par écran, un fond d'écran fixe, un slideshow local (répertoire), ou un slideshow depuis une source web (Bing, Wallhaven, ou toute source personnalisée), avec un mode d'affichage indépendant par écran (stretch/fit/fill/tile/center/span).
 
 ## Stack & décisions déjà tranchées (ne pas rediscuter sans raison forte)
 
@@ -87,11 +87,7 @@ L'utilisateur doit pouvoir ajouter une source custom (URL + JsonPath) sans recom
 
 **Isolation par profil : déjà acquise gratuitement.** `%LocalAppData%` est per-profil Windows par définition, donc `config.json` (et par extension les sources qu'un utilisateur a ajoutées) est automatiquement isolé d'un profil à l'autre, que l'app soit installée per-user ou pour tous les utilisateurs (voir section Build & packaging pour le choix du mode d'install). Pas besoin de fichier de config séparé ou de logique de catégorisation applicative pour ça.
 
-Une seule liste de presets, proposés dans l'UI "Ajouter une source" (catalogue statique embarqué dans l'app, pas dans `config.json`) :
-- **Bing** — `bing.com/HPImageArchive.aspx` (pas de clé)
-- **Unsplash** — endpoint random photo, clé API gratuite
-- **Wallhaven.cc** — paramètre `purity` réglable (sfw/sketchy/nsfw), clé optionnelle selon niveau
-- **Rule34.xxx**, **Gelbooru**, **e621**, **Danbooru** — même pattern `HttpJsonSource`, endpoints "booru" avec paramètre `rating`, pas d'auth complexe requise en lecture publique
+Une seule liste de presets, proposés dans l'UI "Ajouter une source" (catalogue statique embarqué dans l'app, pas dans `config.json`). Catalogue final (V1.2) : **Bing** (image du jour, pas de clé) et **Wallhaven** (`purity` sfw/sketchy/nsfw, clé requise pour le NSFW). Tout le reste (boorus, Unsplash…) passe par la **source personnalisée** (URL + JsonPath + en-tête libre), sous la responsabilité de l'utilisateur — historique : Gelbooru/Rule34 retirés car auth `api_key/user_id` devenue obligatoire, Danbooru/e621 retirés au resserrage du catalogue, Unsplash jamais embarqué (EULA restrictive). Un preset peut être instancié plusieurs fois (identité = `Id`, pas le nom).
 
 `config.json` d'un profil donné ne contient que les sources que **cet utilisateur** a choisi d'ajouter depuis ce catalogue (+ éventuelles sources custom). Rien d'autre à gérer côté code.
 

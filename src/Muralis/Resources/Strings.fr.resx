@@ -127,6 +127,4 @@
   <!-- Notes des presets du catalogue -->
   <data name="Preset_BingNote"><value>Image du jour Bing, sans clé.</value></data>
   <data name="Preset_WallhavenNote"><value>SFW par défaut ; éditer purity/categories dans l'URL. NSFW : clé du compte requise — en-tête X-API-Key, ou &amp;apikey=CLE dans l'URL.</value></data>
-  <data name="Preset_DanbooruNote"><value>Post aléatoire ; filtres via tags dans l'URL.</value></data>
-  <data name="Preset_E621Note"><value>rating:s par défaut, ajustable via tags dans l'URL.</value></data>
 </root>

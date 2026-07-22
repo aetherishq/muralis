@@ -127,6 +127,4 @@
   <!-- Notes des presets du catalogue (les noms, identités persistées, ne sont pas traduits) -->
   <data name="Preset_BingNote"><value>Bing image of the day, no key required.</value></data>
   <data name="Preset_WallhavenNote"><value>SFW by default; edit purity/categories in the URL. NSFW: account key required — X-API-Key header, or &amp;apikey=KEY in the URL.</value></data>
-  <data name="Preset_DanbooruNote"><value>Random post; filter via tags in the URL.</value></data>
-  <data name="Preset_E621Note"><value>rating:s by default, adjustable via tags in the URL.</value></data>
 </root>
