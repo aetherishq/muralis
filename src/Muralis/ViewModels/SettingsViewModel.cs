@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ScreenService _screenService;
     private readonly WallpaperService _wallpaperService;
     private readonly SlideshowService _slideshowService;
+    private readonly ImageSaveService _imageSaveService;
 
     private IReadOnlyList<MonitorInfo> _monitors = [];
 
@@ -26,6 +27,7 @@ public partial class SettingsViewModel : ObservableObject
         ScreenService screenService,
         WallpaperService wallpaperService,
         SlideshowService slideshowService,
+        ImageSaveService imageSaveService,
         AppSettingsViewModel appSettings,
         SourcesViewModel sources)
     {
@@ -33,6 +35,7 @@ public partial class SettingsViewModel : ObservableObject
         _screenService = screenService;
         _wallpaperService = wallpaperService;
         _slideshowService = slideshowService;
+        _imageSaveService = imageSaveService;
         AppSettings = appSettings;
         Sources = sources;
         Load();
@@ -162,13 +165,37 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Met à jour les miniatures « fond appliqué » du sélecteur après un Appliquer.</summary>
+    /// <summary>Enregistre l'image web affichée sur un écran (bouton au survol de sa
+    /// miniature) et rend compte dans la barre de statut.</summary>
+    [RelayCommand]
+    private void SaveCurrent(ScreenSettingsViewModel screen)
+    {
+        try
+        {
+            StatusMessage = _imageSaveService.SaveCurrent(screen.DeviceId) switch
+            {
+                (SaveOutcome.Saved, var name) => string.Format(Strings.Status_ImageSavedFormat, name),
+                (SaveOutcome.AlreadySaved, var name) => string.Format(Strings.Status_ImageAlreadySavedFormat, name),
+                _ => Strings.Status_NothingToSave,
+            };
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = string.Format(Strings.Status_FailedFormat, ex.Message);
+        }
+    }
+
+    /// <summary>Met à jour les miniatures « fond appliqué » du sélecteur (et l'état
+    /// « enregistrable » de chaque écran) après chaque pose.</summary>
     private void RefreshCurrentWallpapers()
     {
         foreach (var monitor in _monitors)
         {
-            Screens.FirstOrDefault(s => s.DeviceId == monitor.DeviceId)
-                ?.SetCurrentWallpaper(_wallpaperService.GetWallpaper(monitor.DeviceId));
+            var screen = Screens.FirstOrDefault(s => s.DeviceId == monitor.DeviceId);
+            if (screen is null)
+                continue;
+            screen.SetCurrentWallpaper(_wallpaperService.GetWallpaper(monitor.DeviceId));
+            screen.CanSaveCurrent = _slideshowService.CurrentWebImage(monitor.DeviceId) is not null;
         }
     }
 }

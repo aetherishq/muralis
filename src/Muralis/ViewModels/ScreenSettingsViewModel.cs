@@ -132,6 +132,12 @@ public partial class ScreenSettingsViewModel : ObservableObject
     [ObservableProperty]
     private ImageSource? currentWallpaper;
 
+    /// <summary>Vrai quand cet écran affiche une image web enregistrable : le bouton
+    /// télécharger apparaît au survol de sa miniature. Alimenté par
+    /// <see cref="SettingsViewModel"/> au fil des poses de fonds.</summary>
+    [ObservableProperty]
+    private bool canSaveCurrent;
+
     /// <summary>Fixe la géométrie du rectangle du sélecteur (appelé avant insertion dans la liste bindée).</summary>
     public void SetSelectorGeometry(double left, double top, double width, double height)
     {

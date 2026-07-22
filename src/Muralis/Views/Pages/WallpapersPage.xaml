@@ -43,11 +43,29 @@
                                     CornerRadius="4">
                                     <TextBlock Style="{DynamicResource BodyStrongTextBlockStyle}" Text="{Binding Number}" />
                                 </Border>
+                                <!-- Enregistrer le fond web affiché : révélé au survol de la
+                                     miniature, seulement quand l'écran a une image web posée. -->
+                                <Border
+                                    x:Name="SaveOverlay"
+                                    Margin="4"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Visibility="Collapsed">
+                                    <ui:Button
+                                        Padding="6,4"
+                                        ToolTip="{x:Static res:Strings.Screen_SaveTooltip}"
+                                        Visibility="{Binding CanSaveCurrent, Converter={StaticResource BoolToVis}}"
+                                        Command="{Binding DataContext.SaveCurrentCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}">
+                                        <ui:FontIcon FontFamily="Segoe Fluent Icons" FontSize="12" Glyph="&#xE896;" />
+                                    </ui:Button>
+                                </Border>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Rect" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}" />
+                                <Setter TargetName="SaveOverlay" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Rect" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />

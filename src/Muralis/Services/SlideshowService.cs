@@ -74,6 +74,20 @@ public class SlideshowService
         }
     }
 
+    /// <summary>Chemin (cache local) de l'image web actuellement posée sur un écran —
+    /// null si la cible n'est pas web ou n'a pas encore servi d'image. DeviceId vide :
+    /// cible unifiée.</summary>
+    public string? CurrentWebImage(string deviceId) =>
+        _targets.FirstOrDefault(t => t.WebSource is not null && t.Config.DeviceId == deviceId)?.LastImage;
+
+    /// <summary>Cibles web ayant une image posée : (DeviceId — vide en mode unifié, chemin).
+    /// Alimente le sous-menu « Enregistrer le fond actuel » du tray.</summary>
+    public IReadOnlyList<(string DeviceId, string Path)> CurrentWebImages() =>
+        _targets
+            .Where(t => t.WebSource is not null && t.LastImage is not null)
+            .Select(t => (t.Config.DeviceId, t.LastImage!))
+            .ToList();
+
     /// <summary>Passe immédiatement à l'image suivante sur toutes les cibles (menu tray).</summary>
     public void AdvanceAll()
     {

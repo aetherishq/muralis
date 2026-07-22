@@ -49,7 +49,7 @@
                 SelectedItem="{Binding AppSettings.SelectedLanguage}" />
         </ui:CardControl>
 
-        <ui:CardControl>
+        <ui:CardControl Margin="0,0,0,4">
             <ui:CardControl.Icon>
                 <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE790;" />
             </ui:CardControl.Icon>
@@ -66,6 +66,31 @@
                 MinWidth="200"
                 ItemsSource="{Binding AppSettings.ThemeOptions}"
                 SelectedItem="{Binding AppSettings.SelectedTheme}" />
+        </ui:CardControl>
+
+        <ui:CardControl>
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B7;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Settings_SaveDirTitle}" />
+                    <TextBlock
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        TextTrimming="CharacterEllipsis"
+                        Text="{Binding AppSettings.SaveDirectory}" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:Button
+                    Content="{x:Static res:Strings.Common_Browse}"
+                    Command="{Binding AppSettings.BrowseSaveDirectoryCommand}" />
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Content="{x:Static res:Strings.Settings_OpenFolder}"
+                    Command="{Binding AppSettings.OpenSaveDirectoryCommand}" />
+            </StackPanel>
         </ui:CardControl>
 
         <TextBlock

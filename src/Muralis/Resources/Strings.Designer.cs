@@ -36,10 +36,13 @@ public static class Strings
     public static string Screen_LabelFormat => Get(nameof(Screen_LabelFormat));
     public static string Screen_LocalFileOption => Get(nameof(Screen_LocalFileOption));
     public static string Screen_LocalFolderOption => Get(nameof(Screen_LocalFolderOption));
+    public static string Screen_SaveTooltip => Get(nameof(Screen_SaveTooltip));
     public static string Screen_UnitMinutes => Get(nameof(Screen_UnitMinutes));
     public static string Screen_UnitSeconds => Get(nameof(Screen_UnitSeconds));
     public static string Settings_LanguageDesc => Get(nameof(Settings_LanguageDesc));
     public static string Settings_LanguageTitle => Get(nameof(Settings_LanguageTitle));
+    public static string Settings_OpenFolder => Get(nameof(Settings_OpenFolder));
+    public static string Settings_SaveDirTitle => Get(nameof(Settings_SaveDirTitle));
     public static string Settings_SectionApiKeys => Get(nameof(Settings_SectionApiKeys));
     public static string Settings_StartupDesc => Get(nameof(Settings_StartupDesc));
     public static string Settings_StartupTitle => Get(nameof(Settings_StartupTitle));
@@ -74,7 +77,10 @@ public static class Strings
     public static string Status_CustomInvalid => Get(nameof(Status_CustomInvalid));
     public static string Status_FailedFormat => Get(nameof(Status_FailedFormat));
     public static string Status_FetchFailedFormat => Get(nameof(Status_FetchFailedFormat));
+    public static string Status_ImageAlreadySavedFormat => Get(nameof(Status_ImageAlreadySavedFormat));
+    public static string Status_ImageSavedFormat => Get(nameof(Status_ImageSavedFormat));
     public static string Status_NameTakenFormat => Get(nameof(Status_NameTakenFormat));
+    public static string Status_NothingToSave => Get(nameof(Status_NothingToSave));
     public static string Status_RemovedFormat => Get(nameof(Status_RemovedFormat));
     public static string Status_SavedFormat => Get(nameof(Status_SavedFormat));
     public static string Status_SavedNoHeaderFormat => Get(nameof(Status_SavedNoHeaderFormat));
@@ -83,6 +89,7 @@ public static class Strings
     public static string Theme_Light => Get(nameof(Theme_Light));
     public static string Tray_NextImage => Get(nameof(Tray_NextImage));
     public static string Tray_Quit => Get(nameof(Tray_Quit));
+    public static string Tray_SaveCurrent => Get(nameof(Tray_SaveCurrent));
     public static string Tray_Settings => Get(nameof(Tray_Settings));
     public static string Wallhaven_AtLeastPlaceholder => Get(nameof(Wallhaven_AtLeastPlaceholder));
     public static string Wallhaven_AutoFit => Get(nameof(Wallhaven_AutoFit));
