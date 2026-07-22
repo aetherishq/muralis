@@ -14,11 +14,16 @@ public class HttpJsonSource : IWallpaperSource
 {
     private readonly HttpClient _http;
     private readonly WallpaperSourceConfig _config;
+    private readonly string _apiKey;
 
-    public HttpJsonSource(HttpClient http, WallpaperSourceConfig config)
+    /// <param name="apiKey">Clé effective à envoyer (résolue par l'appelant : magasin
+    /// central pour un preset connu, clé d'instance pour une source personnalisée).
+    /// Null/vide : repli sur la clé de l'instance.</param>
+    public HttpJsonSource(HttpClient http, WallpaperSourceConfig config, string? apiKey = null)
     {
         _http = http;
         _config = config;
+        _apiKey = string.IsNullOrWhiteSpace(apiKey) ? config.ApiKey : apiKey;
     }
 
     public string Name => _config.Name;
@@ -26,8 +31,8 @@ public class HttpJsonSource : IWallpaperSource
     public async Task<Uri> GetImageUrlAsync(CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, _config.RequestUrl);
-        if (!string.IsNullOrWhiteSpace(_config.ApiKeyHeader) && !string.IsNullOrWhiteSpace(_config.ApiKey))
-            request.Headers.TryAddWithoutValidation(_config.ApiKeyHeader, _config.ApiKey);
+        if (!string.IsNullOrWhiteSpace(_config.ApiKeyHeader) && !string.IsNullOrWhiteSpace(_apiKey))
+            request.Headers.TryAddWithoutValidation(_config.ApiKeyHeader, _apiKey);
 
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();

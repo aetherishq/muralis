@@ -76,8 +76,6 @@
   <data name="Sources_SectionAdd"><value>Ajouter une source</value></data>
   <data name="Sources_CatalogTitle"><value>Depuis le catalogue</value></data>
   <data name="Sources_CatalogDesc"><value>Sources préconfigurées, prêtes à l'emploi</value></data>
-  <data name="Sources_ApiKeyTitle"><value>Clé API</value></data>
-  <data name="Sources_ApiKeyDesc"><value>Requise pour cette source</value></data>
   <data name="Sources_CustomTitle"><value>Source personnalisée</value></data>
   <data name="Sources_CustomDesc"><value>Toute API JSON renvoyant une URL d'image, sans recompilation</value></data>
   <data name="Sources_AddCustom"><value>Ajouter la source</value></data>
@@ -91,7 +89,6 @@
   <data name="SourceKind_Daily"><value>Image du jour (image fixe)</value></data>
 
   <!-- Statuts page Sources -->
-  <data name="Status_KeyRequired"><value>Cette source nécessite une clé API.</value></data>
   <data name="Status_NameTakenFormat"><value>Une source « {0} » existe déjà.</value></data>
   <data name="Status_AddedFormat"><value>Source « {0} » ajoutée.</value></data>
   <data name="Status_AddedNoHeaderFormat"><value>Source « {0} » ajoutée — attention : sans « En-tête API », la clé n'est jamais envoyée (indiquez l'en-tête, ex. X-API-Key, ou mettez la clé dans l'URL).</value></data>
@@ -115,6 +112,8 @@
   <data name="Settings_LanguageDesc"><value>Suivre Windows, ou forcer le français ou l'anglais</value></data>
   <data name="Settings_ThemeTitle"><value>Thème</value></data>
   <data name="Settings_ThemeDesc"><value>Suivre Windows, ou forcer le mode sombre ou clair</value></data>
+  <data name="Settings_SectionApiKeys"><value>Clés API</value></data>
+  <data name="Settings_WallhavenKeyDesc"><value>Partagée par toutes les sources Wallhaven ; requise pour le contenu NSFW</value></data>
   <data name="Option_System"><value>Système (Windows)</value></data>
   <data name="Theme_Dark"><value>Sombre</value></data>
   <data name="Theme_Light"><value>Clair</value></data>
@@ -126,5 +125,5 @@
 
   <!-- Notes des presets du catalogue -->
   <data name="Preset_BingNote"><value>Image du jour Bing, sans clé.</value></data>
-  <data name="Preset_WallhavenNote"><value>SFW par défaut ; éditer purity/categories dans l'URL. NSFW : clé du compte requise — en-tête X-API-Key, ou &amp;apikey=CLE dans l'URL.</value></data>
+  <data name="Preset_WallhavenNote"><value>SFW par défaut ; éditer purity/categories dans l'URL. NSFW : renseignez la clé du compte dans Paramètres &gt; Clés API.</value></data>
 </root>

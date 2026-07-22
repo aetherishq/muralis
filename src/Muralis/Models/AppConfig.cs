@@ -29,6 +29,11 @@ public class AppConfig
     /// <summary>Sources web ajoutées par l'utilisateur (presets du catalogue ou custom).</summary>
     public List<WallpaperSourceConfig> Sources { get; set; } = [];
 
+    /// <summary>Clés API par fournisseur (<see cref="WallpaperSourceConfig.PresetId"/> →
+    /// blob DPAPI base64, cf. <c>ApiKeyProtector</c>) : une clé partagée par toutes les
+    /// instances d'un même preset. Les sources personnalisées gardent leur clé par instance.</summary>
+    public Dictionary<string, string> ApiKeys { get; set; } = [];
+
     /// <summary>Renvoie la config d'un écran par device path, ou <c>null</c> si absente.</summary>
     public ScreenConfig? FindScreen(string deviceId) =>
         Screens.FirstOrDefault(s => s.DeviceId == deviceId);

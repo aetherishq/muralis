@@ -67,6 +67,22 @@ public static class ConfigMigrations
                 changed = true;
             }
             nameToId.TryAdd(source.Name, source.Id);
+
+            // V1.2 : clé API centralisée par fournisseur. Les instances Wallhaven
+            // pré-existantes ignoraient l'en-tête attendu ; une clé saisie par instance
+            // déménage (chiffrée) vers AppConfig.ApiKeys si le magasin n'en a pas déjà une.
+            if (source.PresetId == "wallhaven" && string.IsNullOrEmpty(source.ApiKeyHeader))
+            {
+                source.ApiKeyHeader = "X-API-Key";
+                changed = true;
+            }
+            if (!source.IsCustom && !string.IsNullOrWhiteSpace(source.ApiKey))
+            {
+                if (!config.ApiKeys.ContainsKey(source.PresetId))
+                    config.ApiKeys[source.PresetId] = ApiKeyProtector.Protect(source.ApiKey.Trim());
+                source.ApiKey = string.Empty;
+                changed = true;
+            }
         }
 
         foreach (var screen in config.Screens.Append(config.UnifiedConfig))

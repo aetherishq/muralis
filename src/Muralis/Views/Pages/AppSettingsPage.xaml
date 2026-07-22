@@ -67,5 +67,28 @@
                 ItemsSource="{Binding AppSettings.ThemeOptions}"
                 SelectedItem="{Binding AppSettings.SelectedTheme}" />
         </ui:CardControl>
+
+        <TextBlock
+            Margin="0,24,0,8"
+            Style="{DynamicResource BodyStrongTextBlockStyle}"
+            Text="{x:Static res:Strings.Settings_SectionApiKeys}" />
+
+        <ui:CardControl>
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8D7;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="Wallhaven" />
+                    <TextBlock
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{x:Static res:Strings.Settings_WallhavenKeyDesc}" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:PasswordBox
+                Width="320"
+                Password="{Binding AppSettings.WallhavenApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:CardControl>
     </StackPanel>
 </Page>

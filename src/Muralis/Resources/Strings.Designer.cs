@@ -40,16 +40,16 @@ public static class Strings
     public static string Screen_UnitSeconds => Get(nameof(Screen_UnitSeconds));
     public static string Settings_LanguageDesc => Get(nameof(Settings_LanguageDesc));
     public static string Settings_LanguageTitle => Get(nameof(Settings_LanguageTitle));
+    public static string Settings_SectionApiKeys => Get(nameof(Settings_SectionApiKeys));
     public static string Settings_StartupDesc => Get(nameof(Settings_StartupDesc));
     public static string Settings_StartupTitle => Get(nameof(Settings_StartupTitle));
     public static string Settings_ThemeDesc => Get(nameof(Settings_ThemeDesc));
     public static string Settings_ThemeTitle => Get(nameof(Settings_ThemeTitle));
     public static string Settings_Title => Get(nameof(Settings_Title));
+    public static string Settings_WallhavenKeyDesc => Get(nameof(Settings_WallhavenKeyDesc));
     public static string SourceKind_Daily => Get(nameof(SourceKind_Daily));
     public static string SourceKind_Random => Get(nameof(SourceKind_Random));
     public static string Sources_AddCustom => Get(nameof(Sources_AddCustom));
-    public static string Sources_ApiKeyDesc => Get(nameof(Sources_ApiKeyDesc));
-    public static string Sources_ApiKeyTitle => Get(nameof(Sources_ApiKeyTitle));
     public static string Sources_CatalogDesc => Get(nameof(Sources_CatalogDesc));
     public static string Sources_CatalogTitle => Get(nameof(Sources_CatalogTitle));
     public static string Sources_CustomDesc => Get(nameof(Sources_CustomDesc));
@@ -74,7 +74,6 @@ public static class Strings
     public static string Status_CustomInvalid => Get(nameof(Status_CustomInvalid));
     public static string Status_FailedFormat => Get(nameof(Status_FailedFormat));
     public static string Status_FetchFailedFormat => Get(nameof(Status_FetchFailedFormat));
-    public static string Status_KeyRequired => Get(nameof(Status_KeyRequired));
     public static string Status_NameTakenFormat => Get(nameof(Status_NameTakenFormat));
     public static string Status_RemovedFormat => Get(nameof(Status_RemovedFormat));
     public static string Status_SavedFormat => Get(nameof(Status_SavedFormat));
