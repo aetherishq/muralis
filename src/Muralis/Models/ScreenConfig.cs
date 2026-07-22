@@ -15,8 +15,9 @@ public class ScreenConfig
     /// <summary>Valeur de <see cref="SourceType"/> pour une image fixe choisie sur disque.</summary>
     public const string LocalFileSourceType = "LocalFile";
 
-    /// <summary>Mode Fixed : <see cref="LocalFileSourceType"/> ou nom d'une source web
-    /// quotidienne. Mode Slideshow : "LocalFolder" ou nom d'une source web aléatoire.</summary>
+    /// <summary>Mode Fixed : <see cref="LocalFileSourceType"/> ou <see cref="WallpaperSourceConfig.Id"/>
+    /// d'une source web quotidienne. Mode Slideshow : "LocalFolder" ou Id d'une source web
+    /// aléatoire. (Avant la config V2, les sources web étaient référencées par nom.)</summary>
     public string SourceType { get; set; } = string.Empty;
 
     /// <summary>Chemin local de l'image (mode Fixed) ou config de source web (M3/M4).</summary>

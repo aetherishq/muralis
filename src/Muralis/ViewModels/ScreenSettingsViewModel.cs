@@ -51,8 +51,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
         int index,
         MonitorInfo monitor,
         ScreenConfig config,
-        ObservableCollection<string> sourceOptions,
-        ObservableCollection<string> fixedSourceOptions)
+        ObservableCollection<SourceOption> sourceOptions,
+        ObservableCollection<SourceOption> fixedSourceOptions)
     {
         _monitor = monitor;
         Number = index;
@@ -71,8 +71,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// <summary>Cible = tous les écrans (mode unifié). Span autorisé, miniatures en 16:9.</summary>
     public ScreenSettingsViewModel(
         ScreenConfig config,
-        ObservableCollection<string> sourceOptions,
-        ObservableCollection<string> fixedSourceOptions)
+        ObservableCollection<SourceOption> sourceOptions,
+        ObservableCollection<SourceOption> fixedSourceOptions)
     {
         _monitor = null;
         Number = 0;
@@ -89,11 +89,16 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     /// <summary>Choix de source du diaporama : « Dossier local » + sources aléatoires
     /// (collection partagée, mise à jour en direct par la page Sources).</summary>
-    public ObservableCollection<string> SourceOptions { get; }
+    public ObservableCollection<SourceOption> SourceOptions { get; }
 
     /// <summary>Choix de la card Image : « Fichier local » + sources quotidiennes
     /// (collection partagée, mise à jour en direct par la page Sources).</summary>
-    public ObservableCollection<string> FixedSourceOptions { get; }
+    public ObservableCollection<SourceOption> FixedSourceOptions { get; }
+
+    /// <summary>Sentinelles toujours présentes en tête de leur liste (repli de sélection).</summary>
+    private SourceOption LocalFolderFallback => SourceOptions.First(o => o.Id == SlideshowService.LocalFolderSourceType);
+
+    private SourceOption LocalFileFallback => FixedSourceOptions.First(o => o.Id == ScreenConfig.LocalFileSourceType);
 
     /// <summary>Device path du moniteur ciblé (vide en mode unifié).</summary>
     public string DeviceId => _monitor?.DeviceId ?? string.Empty;
@@ -154,10 +159,10 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// <summary>Source de la card Image : « Fichier local » ou une source web quotidienne.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocalFile), nameof(FixedSourceDescription))]
-    private string selectedFixedSource = LocalFileOption;
+    private SourceOption selectedFixedSource = null!; // assigné par LoadFrom (appelé des deux ctors)
 
     /// <summary>Vrai si l'image fixe vient d'un fichier choisi par l'utilisateur.</summary>
-    public bool IsLocalFile => SelectedFixedSource == LocalFileOption;
+    public bool IsLocalFile => SelectedFixedSource is null || SelectedFixedSource.Id == ScreenConfig.LocalFileSourceType;
 
     /// <summary>Description de la card Image : chemin du fichier, ou mention de mise à jour
     /// quotidienne pour une source web.</summary>
@@ -167,26 +172,26 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     /// <summary>Même filet que pour le diaporama : le Selector pousse null quand l'option
     /// sélectionnée disparaît.</summary>
-    partial void OnSelectedFixedSourceChanged(string? oldValue, string newValue)
+    partial void OnSelectedFixedSourceChanged(SourceOption? oldValue, SourceOption newValue)
     {
-        if (string.IsNullOrEmpty(newValue))
-            SelectedFixedSource = LocalFileOption;
+        if (newValue is null)
+            SelectedFixedSource = LocalFileFallback;
     }
 
-    /// <summary>Une source quotidienne retirée ne doit pas laisser la card Image sur un nom
-    /// fantôme : retombe sur « Fichier local ».</summary>
+    /// <summary>Une source quotidienne retirée ne doit pas laisser la card Image sur une
+    /// option fantôme : retombe sur « Fichier local ».</summary>
     private void EnsureSelectedFixedSourceValid()
     {
-        if (string.IsNullOrEmpty(SelectedFixedSource) || !FixedSourceOptions.Contains(SelectedFixedSource))
-            SelectedFixedSource = LocalFileOption;
+        if (SelectedFixedSource is null || !FixedSourceOptions.Contains(SelectedFixedSource))
+            SelectedFixedSource = LocalFileFallback;
     }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocalSource), nameof(ShowSlideshowPreview))]
-    private string selectedSource = LocalFolderOption;
+    private SourceOption selectedSource = null!; // assigné par LoadFrom (appelé des deux ctors)
 
     /// <summary>Vrai si le diaporama puise dans un dossier local (sinon : source web).</summary>
-    public bool IsLocalSource => SelectedSource == LocalFolderOption;
+    public bool IsLocalSource => SelectedSource is null || SelectedSource.Id == SlideshowService.LocalFolderSourceType;
 
     /// <summary>
     /// Le Selector WPF pousse <c>null</c> quand l'option sélectionnée est retirée de
@@ -194,18 +199,18 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// l'éditeur dans un état invalide (cards masquées, ComboBox vide). Ré-entrance sûre :
     /// le setter généré ne re-notifie que sur changement réel.
     /// </summary>
-    partial void OnSelectedSourceChanged(string? oldValue, string newValue)
+    partial void OnSelectedSourceChanged(SourceOption? oldValue, SourceOption newValue)
     {
-        if (string.IsNullOrEmpty(newValue))
-            SelectedSource = LocalFolderOption;
+        if (newValue is null)
+            SelectedSource = LocalFolderFallback;
     }
 
-    /// <summary>Une source retirée du catalogue ne doit pas laisser un écran pointer sur un
-    /// nom fantôme : retombe sur « Dossier local » (issue #2).</summary>
+    /// <summary>Une source retirée du catalogue ne doit pas laisser un écran pointer sur une
+    /// option fantôme : retombe sur « Dossier local » (issue #2).</summary>
     private void EnsureSelectedSourceValid()
     {
-        if (string.IsNullOrEmpty(SelectedSource) || !SourceOptions.Contains(SelectedSource))
-            SelectedSource = LocalFolderOption;
+        if (SelectedSource is null || !SourceOptions.Contains(SelectedSource))
+            SelectedSource = LocalFolderFallback;
     }
 
     [ObservableProperty]
@@ -291,9 +296,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
         {
             DeviceId = DeviceId,
             Mode = IsSlideshow ? WallpaperMode.Slideshow : WallpaperMode.Fixed,
-            SourceType = IsSlideshow
-                ? (IsLocalSource ? SlideshowService.LocalFolderSourceType : SelectedSource)
-                : (IsLocalFile ? ScreenConfig.LocalFileSourceType : SelectedFixedSource),
+            // L'Id d'une option est directement la valeur persistée (sentinelle ou Id de source).
+            SourceType = IsSlideshow ? SelectedSource.Id : SelectedFixedSource.Id,
             SourcePath = (IsSlideshow
                 ? (IsLocalSource ? FolderPath : null)
                 : (IsLocalFile ? ImagePath : null)) ?? string.Empty,
@@ -306,23 +310,17 @@ public partial class ScreenSettingsViewModel : ObservableObject
     private void LoadFrom(ScreenConfig config)
     {
         IsSlideshow = config.Mode == WallpaperMode.Slideshow;
+        // Une référence inconnue (source supprimée) retombe sur la sentinelle locale.
+        SelectedSource = SourceOptions.FirstOrDefault(o => o.Id == config.SourceType) ?? LocalFolderFallback;
+        SelectedFixedSource = FixedSourceOptions.FirstOrDefault(o => o.Id == config.SourceType) ?? LocalFileFallback;
         if (IsSlideshow)
         {
-            bool isWeb = !string.IsNullOrEmpty(config.SourceType)
-                && config.SourceType != SlideshowService.LocalFolderSourceType
-                && SourceOptions.Contains(config.SourceType);
-            SelectedSource = isWeb ? config.SourceType : LocalFolderOption;
-            if (!isWeb)
+            if (IsLocalSource)
                 FolderPath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
         }
-        else
+        else if (IsLocalFile)
         {
-            bool isDaily = !string.IsNullOrEmpty(config.SourceType)
-                && config.SourceType != ScreenConfig.LocalFileSourceType
-                && FixedSourceOptions.Contains(config.SourceType);
-            SelectedFixedSource = isDaily ? config.SourceType : LocalFileOption;
-            if (!isDaily)
-                ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
+            ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
         }
         var interval = config.SlideshowInterval > TimeSpan.Zero ? config.SlideshowInterval : TimeSpan.FromMinutes(30);
         // Affiche en minutes quand l'intervalle tombe rond, en secondes sinon.

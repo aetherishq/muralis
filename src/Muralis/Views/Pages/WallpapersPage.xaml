@@ -86,6 +86,7 @@
                     <StackPanel Orientation="Horizontal">
                         <ComboBox
                             MinWidth="180"
+                            DisplayMemberPath="Label"
                             ItemsSource="{Binding FixedSourceOptions}"
                             SelectedItem="{Binding SelectedFixedSource}" />
                         <ui:Button
@@ -137,6 +138,7 @@
                             </ui:CardControl.Header>
                             <ComboBox
                                 MinWidth="240"
+                                DisplayMemberPath="Label"
                                 ItemsSource="{Binding SourceOptions}"
                                 SelectedItem="{Binding SelectedSource}" />
                         </ui:CardControl>

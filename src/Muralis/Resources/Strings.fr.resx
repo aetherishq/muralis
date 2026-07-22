@@ -71,6 +71,7 @@
   <data name="Sources_SectionAdded"><value>Sources ajoutées</value></data>
   <data name="Sources_Remove"><value>Retirer</value></data>
   <data name="Sources_SaveChanges"><value>Enregistrer les modifications</value></data>
+  <data name="Sources_Duplicate"><value>Dupliquer</value></data>
   <data name="Sources_EmptyState"><value>Aucune source ajoutée — choisissez-en une dans le catalogue ci-dessous.</value></data>
   <data name="Sources_SectionAdd"><value>Ajouter une source</value></data>
   <data name="Sources_CatalogTitle"><value>Depuis le catalogue</value></data>
