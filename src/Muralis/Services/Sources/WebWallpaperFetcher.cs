@@ -73,19 +73,25 @@ public class WebWallpaperFetcher
     }
 
     /// <summary>Prochaine image de la page Wallhaven du couple (source, écran) —
-    /// re-remplie si vide, épuisée ou périmée. Une page vide (filtres trop stricts,
-    /// NSFW sans clé…) lève : l'appelant signale l'échec.</summary>
+    /// re-remplie si vide, épuisée, périmée, ou si l'URL de recherche a changé (paramètres
+    /// du formulaire modifiés puis ré-appliqués : les résultats des anciens filtres — NSFW
+    /// notamment — ne doivent pas continuer à sortir de la page en mémoire). Une page vide
+    /// (filtres trop stricts, NSFW sans clé…) lève : l'appelant signale l'échec.</summary>
     private async Task<Uri> NextWallhavenImageAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
     {
         var key = (source.Id, monitor?.DeviceId ?? string.Empty);
+        string url = WallhavenUrlBuilder.Build(source.Wallhaven!, monitor);
 
         WallhavenPage? page;
         lock (_wallhavenPages)
             _wallhavenPages.TryGetValue(key, out page);
 
-        if (page is null || page.Remaining.Count == 0 || DateTime.UtcNow - page.FetchedAtUtc > WallhavenPageLifetime)
+        if (page is null
+            || page.Url != url
+            || page.Remaining.Count == 0
+            || DateTime.UtcNow - page.FetchedAtUtc > WallhavenPageLifetime)
         {
-            page = await FetchWallhavenPageAsync(source, monitor, ct).ConfigureAwait(false);
+            page = await FetchWallhavenPageAsync(source, url, ct).ConfigureAwait(false);
             lock (_wallhavenPages)
                 _wallhavenPages[key] = page;
         }
@@ -95,9 +101,8 @@ public class WebWallpaperFetcher
         return page.Remaining.Dequeue();
     }
 
-    private async Task<WallhavenPage> FetchWallhavenPageAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
+    private async Task<WallhavenPage> FetchWallhavenPageAsync(WallpaperSourceConfig source, string url, CancellationToken ct)
     {
-        string url = WallhavenUrlBuilder.Build(source.Wallhaven!, monitor);
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         string? apiKey = ResolveApiKey(source);
         if (!string.IsNullOrWhiteSpace(source.ApiKeyHeader) && !string.IsNullOrWhiteSpace(apiKey))
@@ -107,7 +112,7 @@ public class WebWallpaperFetcher
         response.EnsureSuccessStatusCode();
         string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
-        var page = new WallhavenPage { FetchedAtUtc = DateTime.UtcNow };
+        var page = new WallhavenPage { Url = url, FetchedAtUtc = DateTime.UtcNow };
         using var document = JsonDocument.Parse(json);
         foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
         {
@@ -190,6 +195,11 @@ public class WebWallpaperFetcher
     private sealed class WallhavenPage
     {
         public Queue<Uri> Remaining { get; } = new();
+
+        /// <summary>URL de recherche qui a produit la page — empreinte d'invalidation :
+        /// si l'URL reconstruite diffère, les filtres ont changé.</summary>
+        public required string Url { get; init; }
+
         public required DateTime FetchedAtUtc { get; init; }
     }
 }
