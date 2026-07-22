@@ -126,7 +126,7 @@ L'UI est multilingue : `src/Muralis/Resources/Strings.resx` (**anglais = langue 
 
 ## Documentation publique (depuis V1.2.1)
 
-Le repo a un `README.md` (anglais) avec captures (`assets/screenshots/`) et une licence **GPL-3.0** (`LICENSE`). **Toute feature visible utilisateur doit être reflétée dans README.md** (section Features, captures si le visuel change significativement).
+Le repo a un `README.md` (anglais) avec captures (`assets/screenshots/`) et une licence **GPL-3.0** (`LICENSE`). **Toute feature visible utilisateur doit être reflétée dans README.md** (section Features, captures si le visuel change significativement). **Les notes de release GitHub sont rédigées en anglais** (cohérence avec le README ; l'installeur, lui, reste bilingue).
 
 ## Hors scope V1 (ne pas implémenter sans qu'on en discute)
 
