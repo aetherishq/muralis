@@ -48,8 +48,11 @@ public partial class AppSettingsViewModel : ObservableObject
         selectedTheme = ThemeOptions.FirstOrDefault(o => o.Value == config.Theme) ?? ThemeOptions[0];
         selectedLanguage = LanguageOptions.FirstOrDefault(o => o.Code == config.Language) ?? LanguageOptions[0];
         startWithWindows = ReadStartupState();
+        wallhavenApiKey = LoadApiKey(config, WallhavenPresetId);
         _initialized = true;
     }
+
+    private const string WallhavenPresetId = "wallhaven";
 
     public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
     [
@@ -73,6 +76,30 @@ public partial class AppSettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool startWithWindows;
+
+    /// <summary>Clé API Wallhaven (partagée par toutes les instances Wallhaven).
+    /// Persistée chiffrée DPAPI dans <see cref="AppConfig.ApiKeys"/>, sauvée au fil de la
+    /// saisie ; utilisée à la prochaine requête (aucun redémarrage nécessaire).</summary>
+    [ObservableProperty]
+    private string wallhavenApiKey;
+
+    partial void OnWallhavenApiKeyChanged(string value)
+    {
+        if (!_initialized)
+            return;
+
+        var config = _configService.Load();
+        if (string.IsNullOrWhiteSpace(value))
+            config.ApiKeys.Remove(WallhavenPresetId);
+        else
+            config.ApiKeys[WallhavenPresetId] = ApiKeyProtector.Protect(value.Trim());
+        _configService.Save(config);
+    }
+
+    private static string LoadApiKey(AppConfig config, string presetId) =>
+        config.ApiKeys.TryGetValue(presetId, out string? blob)
+            ? ApiKeyProtector.Unprotect(blob) ?? string.Empty
+            : string.Empty;
 
     /// <summary>Relit l'état réel du registre (appelé quand la page redevient visible).</summary>
     public void Refresh() => StartWithWindows = ReadStartupState();

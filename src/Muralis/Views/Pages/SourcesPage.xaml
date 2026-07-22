@@ -68,7 +68,9 @@
                                 Margin="0,0,0,8"
                                 PlaceholderText="{x:Static res:Strings.Sources_PlaceholderJsonPath}"
                                 Text="{Binding ImageUrlJsonPath, UpdateSourceTrigger=PropertyChanged}" />
-                            <Grid Margin="0,0,0,8">
+                            <!-- En-tête/clé par instance : sources personnalisées uniquement —
+                                 les presets connus partagent la clé de Paramètres > Clés API. -->
+                            <Grid Margin="0,0,0,8" Visibility="{Binding IsCustom, Converter={StaticResource BoolToVis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
@@ -148,24 +150,6 @@
             TextWrapping="Wrap"
             Text="{Binding Sources.PresetNote}"
             Visibility="{Binding Sources.ShowPresetNote, Converter={StaticResource BoolToVis}}" />
-
-        <ui:CardControl Margin="0,0,0,4" Visibility="{Binding Sources.ShowPresetKey, Converter={StaticResource BoolToVis}}">
-            <ui:CardControl.Icon>
-                <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8D7;" />
-            </ui:CardControl.Icon>
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Style="{DynamicResource BodyTextBlockStyle}" Text="{x:Static res:Strings.Sources_ApiKeyTitle}" />
-                    <TextBlock
-                        Style="{DynamicResource CaptionTextBlockStyle}"
-                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="{x:Static res:Strings.Sources_ApiKeyDesc}" />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <ui:PasswordBox
-                Width="320"
-                Password="{Binding Sources.PresetApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:CardControl>
 
         <!-- Formulaire replié par défaut (DESIGN.md — ne pas étaler les 5 champs) -->
         <ui:CardExpander Margin="0,0,0,4">

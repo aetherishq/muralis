@@ -22,6 +22,10 @@ public class WallpaperSourceConfig
     /// <summary>Valeur de <see cref="PresetId"/> pour une source personnalisée.</summary>
     public const string CustomPresetId = "custom";
 
+    /// <summary>Vrai pour une source personnalisée : ses champs En-tête/Clé API sont alors
+    /// éditables par instance (les presets connus partagent la clé de <see cref="AppConfig.ApiKeys"/>).</summary>
+    public bool IsCustom => PresetId == CustomPresetId;
+
     /// <summary>Nom d'affichage, éditable par l'utilisateur (l'identité est <see cref="Id"/>).</summary>
     public string Name { get; set; } = string.Empty;
 

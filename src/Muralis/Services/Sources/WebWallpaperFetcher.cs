@@ -18,11 +18,13 @@ public class WebWallpaperFetcher
     private const int MaxCachedPerSource = 12;
 
     private readonly HttpClient _http;
+    private readonly ConfigService _configService;
     private readonly string _cacheRoot;
 
     public WebWallpaperFetcher(HttpClient http, ConfigService configService)
     {
         _http = http;
+        _configService = configService;
         _cacheRoot = Path.Combine(configService.DataDirectory, "webcache");
     }
 
@@ -38,7 +40,7 @@ public class WebWallpaperFetcher
     {
         try
         {
-            var wallpaperSource = new HttpJsonSource(_http, source);
+            var wallpaperSource = new HttpJsonSource(_http, source, ResolveApiKey(source));
             Uri imageUrl = await wallpaperSource.GetImageUrlAsync(ct).ConfigureAwait(false);
 
             string directory = Path.Combine(_cacheRoot, Sanitize(source.Id));
@@ -68,6 +70,19 @@ public class WebWallpaperFetcher
         {
             return null;
         }
+    }
+
+    /// <summary>Clé effective d'une source : magasin central (par fournisseur, chiffré
+    /// DPAPI) pour un preset connu, sinon la clé portée par l'instance (source custom).
+    /// Résolue à chaque requête : une clé changée dans Paramètres prend effet au tick suivant.</summary>
+    private string? ResolveApiKey(WallpaperSourceConfig source)
+    {
+        if (source.IsCustom)
+            return null;
+
+        return _configService.Load().ApiKeys.TryGetValue(source.PresetId, out string? blob)
+            ? ApiKeyProtector.Unprotect(blob)
+            : null;
     }
 
     private static string Sanitize(string name)

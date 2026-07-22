@@ -73,17 +73,12 @@ public partial class SourcesViewModel : ObservableObject
     public IReadOnlyList<SourcePreset> AvailablePresets => SourcePresets.All;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PresetNote), nameof(ShowPresetKey), nameof(ShowPresetNote))]
+    [NotifyPropertyChangedFor(nameof(PresetNote), nameof(ShowPresetNote))]
     private SourcePreset? selectedPreset;
 
     public string PresetNote => SelectedPreset?.Note ?? string.Empty;
 
     public bool ShowPresetNote => SelectedPreset is not null;
-
-    public bool ShowPresetKey => SelectedPreset?.RequiresKey == true;
-
-    [ObservableProperty]
-    private string presetApiKey = string.Empty;
 
     [ObservableProperty]
     private string customName = string.Empty;
@@ -108,16 +103,11 @@ public partial class SourcesViewModel : ObservableObject
     {
         if (SelectedPreset is null)
             return;
-        if (SelectedPreset.RequiresKey && string.IsNullOrWhiteSpace(PresetApiKey))
-        {
-            StatusMessage = Strings.Status_KeyRequired;
-            return;
-        }
 
-        var source = SelectedPreset.ToConfig(PresetApiKey.Trim());
+        // Aucune clé à saisir ici : celle du fournisseur vit dans Paramètres > Clés API.
+        var source = SelectedPreset.ToConfig();
         source.Name = UniqueName(source.Name);
         Add(source);
-        PresetApiKey = string.Empty;
     }
 
     [RelayCommand]
