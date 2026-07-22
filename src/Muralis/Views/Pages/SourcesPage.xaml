@@ -60,14 +60,89 @@
                                 Margin="0,0,0,8"
                                 PlaceholderText="{x:Static res:Strings.Sources_PlaceholderName}"
                                 Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                            <ui:TextBox
-                                Margin="0,0,0,8"
-                                PlaceholderText="{x:Static res:Strings.Sources_PlaceholderUrl}"
-                                Text="{Binding RequestUrl, UpdateSourceTrigger=PropertyChanged}" />
-                            <ui:TextBox
-                                Margin="0,0,0,8"
-                                PlaceholderText="{x:Static res:Strings.Sources_PlaceholderJsonPath}"
-                                Text="{Binding ImageUrlJsonPath, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <!-- Wallhaven : formulaire typé, l'URL est construite à la requête. -->
+                            <StackPanel Visibility="{Binding IsWallhaven, Converter={StaticResource BoolToVis}}">
+                                <ui:TextBox
+                                    Margin="0,0,0,4"
+                                    PlaceholderText="{x:Static res:Strings.Wallhaven_TagsPlaceholder}"
+                                    Text="{Binding Wallhaven.Tags, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Margin="4,0,4,8"
+                                    Style="{DynamicResource CaptionTextBlockStyle}"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap"
+                                    Text="{x:Static res:Strings.Wallhaven_TagsCaption}" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            Style="{DynamicResource CaptionTextBlockStyle}"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Static res:Strings.Wallhaven_Categories}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_CategoryGeneral}" IsChecked="{Binding Wallhaven.CategoryGeneral}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_CategoryAnime}" IsChecked="{Binding Wallhaven.CategoryAnime}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_CategoryPeople}" IsChecked="{Binding Wallhaven.CategoryPeople}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock
+                                            Margin="0,0,0,4"
+                                            Style="{DynamicResource CaptionTextBlockStyle}"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            Text="{x:Static res:Strings.Wallhaven_Purity}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_PuritySfw}" IsChecked="{Binding Wallhaven.PuritySfw}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_PuritySketchy}" IsChecked="{Binding Wallhaven.PuritySketchy}" />
+                                        <CheckBox Content="{x:Static res:Strings.Wallhaven_PurityNsfw}" IsChecked="{Binding Wallhaven.PurityNsfw}" />
+                                    </StackPanel>
+                                </Grid>
+                                <ui:InfoBar
+                                    Margin="0,0,0,8"
+                                    Severity="Warning"
+                                    IsClosable="False"
+                                    IsOpen="{Binding Wallhaven.PurityNsfw, Mode=OneWay}"
+                                    Message="{x:Static res:Strings.Wallhaven_NsfwKeyWarning}" />
+                                <CheckBox
+                                    Content="{x:Static res:Strings.Wallhaven_AutoFit}"
+                                    IsChecked="{Binding Wallhaven.AutoFitScreen}" />
+                                <TextBlock
+                                    Margin="4,0,4,8"
+                                    Style="{DynamicResource CaptionTextBlockStyle}"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap"
+                                    Text="{x:Static res:Strings.Wallhaven_AutoFitDesc}" />
+                                <Grid Margin="0,0,0,8" Visibility="{Binding Wallhaven.ManualFit, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox
+                                        Grid.Column="0"
+                                        Margin="0,0,4,0"
+                                        PlaceholderText="{x:Static res:Strings.Wallhaven_AtLeastPlaceholder}"
+                                        Text="{Binding Wallhaven.AtLeast, UpdateSourceTrigger=PropertyChanged}" />
+                                    <ui:TextBox
+                                        Grid.Column="1"
+                                        Margin="4,0,0,0"
+                                        PlaceholderText="{x:Static res:Strings.Wallhaven_RatiosPlaceholder}"
+                                        Text="{Binding Wallhaven.Ratios, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Autres sources : configuration brute URL + chemin JSON. -->
+                            <StackPanel Visibility="{Binding ShowRawConfig, Converter={StaticResource BoolToVis}}">
+                                <ui:TextBox
+                                    Margin="0,0,0,8"
+                                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderUrl}"
+                                    Text="{Binding RequestUrl, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:TextBox
+                                    Margin="0,0,0,8"
+                                    PlaceholderText="{x:Static res:Strings.Sources_PlaceholderJsonPath}"
+                                    Text="{Binding ImageUrlJsonPath, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
                             <!-- En-tête/clé par instance : sources personnalisées uniquement —
                                  les presets connus partagent la clé de Paramètres > Clés API. -->
                             <Grid Margin="0,0,0,8" Visibility="{Binding IsCustom, Converter={StaticResource BoolToVis}}">

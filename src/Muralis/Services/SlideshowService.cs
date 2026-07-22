@@ -56,7 +56,8 @@ public class SlideshowService
         if (config.Unified)
         {
             var unified = config.UnifiedConfig;
-            TryAddTarget(config, unified,
+            // Pas d'écran destinataire unique : l'adaptation Wallhaven par écran est omise.
+            TryAddTarget(config, unified, monitor: null,
                 path => _wallpaperService.ApplyAllMonitors(path, unified.DisplayMode, monitors));
             return;
         }
@@ -67,7 +68,7 @@ public class SlideshowService
             if (screen is not null)
             {
                 var target = monitor;
-                TryAddTarget(config, screen,
+                TryAddTarget(config, screen, monitor,
                     path => _wallpaperService.ApplyMonitor(target, path, screen.DisplayMode));
             }
         }
@@ -96,7 +97,7 @@ public class SlideshowService
     /// <summary>Cadence interne de re-vérification des sources quotidiennes (non configurable).</summary>
     private static readonly TimeSpan DailyRefreshInterval = TimeSpan.FromHours(1);
 
-    private void TryAddTarget(AppConfig config, ScreenConfig screen, Action<string> apply)
+    private void TryAddTarget(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Action<string> apply)
     {
         WallpaperSourceConfig? webSource;
         TimeSpan interval;
@@ -134,7 +135,7 @@ public class SlideshowService
             interval = DailyRefreshInterval;
         }
 
-        var target = new SlideshowTarget(screen, apply, webSource)
+        var target = new SlideshowTarget(screen, apply, webSource, monitor)
         {
             Timer = new DispatcherTimer { Interval = interval },
         };
@@ -177,7 +178,7 @@ public class SlideshowService
         try
         {
             // Pas de ConfigureAwait(false) : Apply (imaging WPF + COM) doit reprendre sur l'UI thread.
-            string? path = await _fetcher.FetchAsync(target.WebSource!, ct);
+            string? path = await _fetcher.FetchAsync(target.WebSource!, target.Monitor, ct);
             if (ct.IsCancellationRequested)
                 return;
 
@@ -270,11 +271,15 @@ public class SlideshowService
             target.Queue.Enqueue(file);
     }
 
-    private sealed class SlideshowTarget(ScreenConfig config, Action<string> apply, WallpaperSourceConfig? webSource)
+    private sealed class SlideshowTarget(ScreenConfig config, Action<string> apply, WallpaperSourceConfig? webSource, MonitorInfo? monitor)
     {
         public ScreenConfig Config { get; } = config;
         public Action<string> Apply { get; } = apply;
         public WallpaperSourceConfig? WebSource { get; } = webSource;
+
+        /// <summary>Écran destinataire (null en mode unifié) — transmis au fetcher pour
+        /// l'adaptation Wallhaven par écran.</summary>
+        public MonitorInfo? Monitor { get; } = monitor;
         public required DispatcherTimer Timer { get; init; }
         public Queue<string> Queue { get; } = new();
         public string? LastImage { get; set; }

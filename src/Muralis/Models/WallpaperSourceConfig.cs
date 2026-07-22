@@ -22,9 +22,25 @@ public class WallpaperSourceConfig
     /// <summary>Valeur de <see cref="PresetId"/> pour une source personnalisée.</summary>
     public const string CustomPresetId = "custom";
 
+    /// <summary>Valeur de <see cref="PresetId"/> du preset Wallhaven (formulaire dédié).</summary>
+    public const string WallhavenPresetId = "wallhaven";
+
     /// <summary>Vrai pour une source personnalisée : ses champs En-tête/Clé API sont alors
     /// éditables par instance (les presets connus partagent la clé de <see cref="AppConfig.ApiKeys"/>).</summary>
     public bool IsCustom => PresetId == CustomPresetId;
+
+    /// <summary>Vrai pour une instance Wallhaven : sa card affiche le formulaire typé
+    /// (<see cref="Wallhaven"/>) au lieu des champs URL/chemin JSON.</summary>
+    public bool IsWallhaven => PresetId == WallhavenPresetId;
+
+    /// <summary>Vrai quand la card d'édition doit montrer les champs bruts URL/chemin JSON
+    /// (toute source sauf Wallhaven, qui a son formulaire).</summary>
+    public bool ShowRawConfig => !IsWallhaven;
+
+    /// <summary>Paramètres du formulaire Wallhaven (null pour les autres sources).
+    /// L'URL de recherche est construite à la requête depuis ces options ;
+    /// <see cref="RequestUrl"/> ne sert alors qu'à l'affichage.</summary>
+    public WallhavenSourceOptions? Wallhaven { get; set; }
 
     /// <summary>Nom d'affichage, éditable par l'utilisateur (l'identité est <see cref="Id"/>).</summary>
     public string Name { get; set; } = string.Empty;

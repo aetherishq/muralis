@@ -1,4 +1,5 @@
 using Muralis.Models;
+using Muralis.Services.Sources;
 
 namespace Muralis.Services;
 
@@ -83,6 +84,16 @@ public static class ConfigMigrations
                 source.ApiKey = string.Empty;
                 changed = true;
             }
+
+            // V1.2 : formulaire Wallhaven typé. Les instances antérieures portaient une URL
+            // brute — leurs filtres (categories/purity/q/atleast/ratios) sont récupérés dans
+            // les options, l'URL de recherche étant désormais construite à chaque requête.
+            if (source.IsWallhaven && source.Wallhaven is null)
+            {
+                source.Wallhaven = ParseWallhavenUrl(source.RequestUrl);
+                source.RequestUrl = WallhavenUrlBuilder.SearchBaseUrl;
+                changed = true;
+            }
         }
 
         foreach (var screen in config.Screens.Append(config.UnifiedConfig))
@@ -120,5 +131,51 @@ public static class ConfigMigrations
         }
 
         return changed;
+    }
+
+    /// <summary>Reconstruit des options Wallhaven depuis une URL brute pré-formulaire.
+    /// Un paramètre absent garde le défaut ; atleast/ratios manuels désactivent
+    /// l'adaptation automatique (l'utilisateur les avait choisis).</summary>
+    private static WallhavenSourceOptions ParseWallhavenUrl(string url)
+    {
+        var options = new WallhavenSourceOptions();
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return options;
+
+        foreach (string pair in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int eq = pair.IndexOf('=');
+            if (eq <= 0)
+                continue;
+            string value = Uri.UnescapeDataString(pair[(eq + 1)..]);
+
+            switch (pair[..eq])
+            {
+                case "categories" when value.Length == 3:
+                    options.CategoryGeneral = value[0] == '1';
+                    options.CategoryAnime = value[1] == '1';
+                    options.CategoryPeople = value[2] == '1';
+                    break;
+                case "purity" when value.Length == 3:
+                    options.PuritySfw = value[0] == '1';
+                    options.PuritySketchy = value[1] == '1';
+                    options.PurityNsfw = value[2] == '1';
+                    break;
+                case "q":
+                    // « +voiture +soleil -anime » (ou variante floue) → « voiture, soleil, -anime ».
+                    options.Tags = string.Join(", ", value
+                        .Split([' ', '+'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                    break;
+                case "atleast":
+                    options.AtLeast = value;
+                    options.AutoFitScreen = false;
+                    break;
+                case "ratios":
+                    options.Ratios = value;
+                    options.AutoFitScreen = false;
+                    break;
+            }
+        }
+        return options;
     }
 }

@@ -200,6 +200,7 @@ public partial class SourcesViewModel : ObservableObject
             ImageUrlJsonPath = source.ImageUrlJsonPath,
             ApiKeyHeader = source.ApiKeyHeader,
             ApiKey = source.ApiKey,
+            Wallhaven = source.Wallhaven?.Clone(),
         });
     }
 

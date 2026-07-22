@@ -85,6 +85,21 @@
   <data name="Sources_PlaceholderHeader"><value>En-tête API (ex. X-API-Key)</value></data>
   <data name="Sources_PlaceholderKey"><value>Clé API (optionnel)</value></data>
   <data name="Sources_KindCaption"><value>Type de source</value></data>
+  <data name="Wallhaven_TagsPlaceholder"><value>Tags (séparés par des virgules, - pour exclure)</value></data>
+  <data name="Wallhaven_TagsCaption"><value>Chaque tag saisi est obligatoire ; ex. nature, -anime</value></data>
+  <data name="Wallhaven_Categories"><value>Catégories</value></data>
+  <data name="Wallhaven_CategoryGeneral"><value>Général</value></data>
+  <data name="Wallhaven_CategoryAnime"><value>Anime</value></data>
+  <data name="Wallhaven_CategoryPeople"><value>Personnes</value></data>
+  <data name="Wallhaven_Purity"><value>Contenu</value></data>
+  <data name="Wallhaven_PuritySfw"><value>SFW</value></data>
+  <data name="Wallhaven_PuritySketchy"><value>Suggestif</value></data>
+  <data name="Wallhaven_PurityNsfw"><value>NSFW</value></data>
+  <data name="Wallhaven_NsfwKeyWarning"><value>Le contenu NSFW nécessite votre clé API Wallhaven — Paramètres &gt; Clés API.</value></data>
+  <data name="Wallhaven_AutoFit"><value>Adapter automatiquement à l'écran</value></data>
+  <data name="Wallhaven_AutoFitDesc"><value>Résolution minimale et orientation calculées pour chaque écran à la requête</value></data>
+  <data name="Wallhaven_AtLeastPlaceholder"><value>Résolution minimale (ex. 1920x1080)</value></data>
+  <data name="Wallhaven_RatiosPlaceholder"><value>Ratios (ex. 16x9,16x10)</value></data>
   <data name="SourceKind_Random"><value>Aléatoire (diaporama)</value></data>
   <data name="SourceKind_Daily"><value>Image du jour (image fixe)</value></data>
 
@@ -125,5 +140,5 @@
 
   <!-- Notes des presets du catalogue -->
   <data name="Preset_BingNote"><value>Image du jour Bing, sans clé.</value></data>
-  <data name="Preset_WallhavenNote"><value>SFW par défaut ; éditer purity/categories dans l'URL. NSFW : renseignez la clé du compte dans Paramètres &gt; Clés API.</value></data>
+  <data name="Preset_WallhavenNote"><value>Fonds aléatoires ; tags, catégories et contenu se règlent dans la card de la source. NSFW : clé dans Paramètres &gt; Clés API.</value></data>
 </root>
