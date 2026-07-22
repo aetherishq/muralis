@@ -4,11 +4,14 @@ using Muralis.Resources;
 namespace Muralis.Services.Sources;
 
 /// <summary>Un preset du catalogue : gabarit de config + indication de clé API.</summary>
-/// <param name="Name">Nom affiché (unique dans le catalogue). Identité persistée des sources
-/// ajoutées : marque nue, neutre en langue (le descriptif vit dans la note localisée).</param>
+/// <param name="PresetId">Identifiant stable du preset (« bing », « wallhaven »…), recopié
+/// dans les instances pour retrouver leur origine (formulaire dédié, clé API partagée).</param>
+/// <param name="Name">Nom affiché (unique dans le catalogue) : marque nue, neutre en langue
+/// (le descriptif vit dans la note localisée). Sert de nom d'affichage par défaut aux
+/// instances, suffixé en cas de collision.</param>
 /// <param name="RequiresKey">Vrai si la source ne fonctionne pas sans clé API.</param>
 /// <param name="NoteKey">Clé resx de l'aide courte affichée dans l'UI.</param>
-public sealed record SourcePreset(string Name, bool RequiresKey, string NoteKey)
+public sealed record SourcePreset(string PresetId, string Name, bool RequiresKey, string NoteKey)
 {
     /// <summary>Aide localisée, résolue à l'affichage (suit les changements de langue).</summary>
     public string Note => Strings.ResourceManager.GetString(NoteKey) ?? string.Empty;
@@ -23,6 +26,8 @@ public sealed record SourcePreset(string Name, bool RequiresKey, string NoteKey)
     /// <summary>Instancie une config ajoutable (copie : le catalogue reste immuable).</summary>
     public WallpaperSourceConfig ToConfig(string apiKey = "") => new()
     {
+        Id = WallpaperSourceConfig.NewId(),
+        PresetId = PresetId,
         Name = Name,
         Kind = Kind,
         RequestUrl = RequestUrl,
@@ -40,23 +45,23 @@ public static class SourcePresets
 {
     public static readonly IReadOnlyList<SourcePreset> All =
     [
-        new("Bing", RequiresKey: false, nameof(Strings.Preset_BingNote))
+        new("bing", "Bing", RequiresKey: false, nameof(Strings.Preset_BingNote))
         {
             RequestUrl = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=fr-FR",
             ImageUrlJsonPath = "images[0].url",
             Kind = SourceKind.Daily,
         },
-        new("Wallhaven", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
+        new("wallhaven", "Wallhaven", RequiresKey: false, nameof(Strings.Preset_WallhavenNote))
         {
             RequestUrl = "https://wallhaven.cc/api/v1/search?sorting=random&categories=111&purity=100",
             ImageUrlJsonPath = "data[0].path",
         },
-        new("Danbooru", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
+        new("danbooru", "Danbooru", RequiresKey: false, nameof(Strings.Preset_DanbooruNote))
         {
             RequestUrl = "https://danbooru.donmai.us/posts/random.json",
             ImageUrlJsonPath = "file_url",
         },
-        new("e621", RequiresKey: false, nameof(Strings.Preset_E621Note))
+        new("e621", "e621", RequiresKey: false, nameof(Strings.Preset_E621Note))
         {
             RequestUrl = "https://e621.net/posts.json?limit=1&tags=order:random+rating:s",
             ImageUrlJsonPath = "posts[0].file.url",

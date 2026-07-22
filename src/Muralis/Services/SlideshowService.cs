@@ -11,7 +11,7 @@ namespace Muralis.Services;
 /// Deux types de source : dossier local (« LocalFolder » — cycle aléatoire sans répétition ou
 /// alphabétique selon <see cref="ScreenConfig.Shuffle"/>, dossier ré-énuméré à chaque cycle) ou
 /// source web (le <see cref="ScreenConfig.SourceType"/> référence une
-/// <see cref="WallpaperSourceConfig"/> par nom : chaque tick télécharge une nouvelle image via
+/// <see cref="WallpaperSourceConfig"/> par Id : chaque tick télécharge une nouvelle image via
 /// <see cref="WebWallpaperFetcher"/>, sans jamais bloquer l'UI ; en cas d'échec le fond courant
 /// est conservé et on retente au tick suivant).
 /// </summary>
@@ -111,7 +111,7 @@ public class SlideshowService
             }
             else
             {
-                webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType && s.Kind == SourceKind.Random);
+                webSource = config.Sources.FirstOrDefault(s => s.Id == screen.SourceType && s.Kind == SourceKind.Random);
                 if (webSource is null || !webSource.IsValid)
                     return; // Source supprimée, incomplète ou non aléatoire : cible ignorée.
             }
@@ -128,7 +128,7 @@ public class SlideshowService
             if (screen.SourceType == ScreenConfig.LocalFileSourceType || string.IsNullOrEmpty(screen.SourceType))
                 return;
 
-            webSource = config.Sources.FirstOrDefault(s => s.Name == screen.SourceType && s.Kind == SourceKind.Daily);
+            webSource = config.Sources.FirstOrDefault(s => s.Id == screen.SourceType && s.Kind == SourceKind.Daily);
             if (webSource is null || !webSource.IsValid)
                 return;
             interval = DailyRefreshInterval;

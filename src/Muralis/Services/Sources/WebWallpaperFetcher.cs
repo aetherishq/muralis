@@ -8,9 +8,10 @@ namespace Muralis.Services.Sources;
 
 /// <summary>
 /// Récupère une image depuis une source web et la matérialise en fichier local dans
-/// <c>%LocalAppData%\Muralis\webcache\&lt;source&gt;\</c>, pour que le pipeline habituel
+/// <c>%LocalAppData%\Muralis\webcache\&lt;Id de source&gt;\</c>, pour que le pipeline habituel
 /// (composition par moniteur, <c>SetWallpaper</c>) travaille toujours sur un fichier.
-/// Le cache est purgé au fil de l'eau (12 fichiers max par source).
+/// Le dossier est nommé par Id (stable au renommage, propre à chaque instance) ;
+/// le cache est purgé au fil de l'eau (12 fichiers max par source).
 /// </summary>
 public class WebWallpaperFetcher
 {
@@ -40,7 +41,7 @@ public class WebWallpaperFetcher
             var wallpaperSource = new HttpJsonSource(_http, source);
             Uri imageUrl = await wallpaperSource.GetImageUrlAsync(ct).ConfigureAwait(false);
 
-            string directory = Path.Combine(_cacheRoot, Sanitize(source.Name));
+            string directory = Path.Combine(_cacheRoot, Sanitize(source.Id));
             Directory.CreateDirectory(directory);
 
             string fileName = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(imageUrl.AbsoluteUri)))[..16]

@@ -56,6 +56,7 @@ public static class Strings
     public static string Sources_CatalogTitle => Get(nameof(Sources_CatalogTitle));
     public static string Sources_CustomDesc => Get(nameof(Sources_CustomDesc));
     public static string Sources_CustomTitle => Get(nameof(Sources_CustomTitle));
+    public static string Sources_Duplicate => Get(nameof(Sources_Duplicate));
     public static string Sources_EmptyState => Get(nameof(Sources_EmptyState));
     public static string Sources_KindCaption => Get(nameof(Sources_KindCaption));
     public static string Sources_PlaceholderHeader => Get(nameof(Sources_PlaceholderHeader));
