@@ -118,6 +118,9 @@
   <data name="Status_AppliedUnifiedFormat"><value>Same wallpaper applied to {0} screen(s).</value></data>
   <data name="Status_AppliedFormat"><value>Applied to {0} screen(s).</value></data>
   <data name="Status_FailedFormat"><value>Failed: {0}</value></data>
+  <data name="Status_ImageSavedFormat"><value>Image saved: {0}</value></data>
+  <data name="Status_ImageAlreadySavedFormat"><value>Already saved: {0}</value></data>
+  <data name="Status_NothingToSave"><value>No web image is currently applied on this screen.</value></data>
 
   <!-- Page Paramètres -->
   <data name="Settings_Title"><value>Settings</value></data>
@@ -127,6 +130,10 @@
   <data name="Settings_LanguageDesc"><value>Follow Windows, or force French or English</value></data>
   <data name="Settings_ThemeTitle"><value>Theme</value></data>
   <data name="Settings_ThemeDesc"><value>Follow Windows, or force dark or light mode</value></data>
+  <data name="Settings_SaveDirTitle"><value>Save folder</value></data>
+  <data name="Settings_OpenFolder"><value>Open</value></data>
+  <data name="Screen_SaveTooltip"><value>Save this wallpaper</value></data>
+  <data name="Tray_SaveCurrent"><value>Save current wallpaper</value></data>
   <data name="Settings_SectionApiKeys"><value>API keys</value></data>
   <data name="Settings_WallhavenKeyDesc"><value>Shared by every Wallhaven source; required for NSFW content</value></data>
   <data name="Option_System"><value>System (Windows)</value></data>

@@ -1,5 +1,9 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using Muralis.Models;
 using Muralis.Resources;
 using Muralis.Services;
@@ -49,6 +53,7 @@ public partial class AppSettingsViewModel : ObservableObject
         selectedLanguage = LanguageOptions.FirstOrDefault(o => o.Code == config.Language) ?? LanguageOptions[0];
         startWithWindows = ReadStartupState();
         wallhavenApiKey = LoadApiKey(config, WallhavenPresetId);
+        saveDirectory = ResolveSaveDirectory(config);
         _initialized = true;
     }
 
@@ -95,6 +100,41 @@ public partial class AppSettingsViewModel : ObservableObject
             config.ApiKeys[WallhavenPresetId] = ApiKeyProtector.Protect(value.Trim());
         _configService.Save(config);
     }
+
+    /// <summary>Dossier où « Enregistrer le fond actuel » copie les images (affiché dans la
+    /// card ; défaut Images\Muralis).</summary>
+    [ObservableProperty]
+    private string saveDirectory;
+
+    [RelayCommand]
+    private void BrowseSaveDirectory()
+    {
+        var dialog = new OpenFolderDialog { Title = Strings.Settings_SaveDirTitle };
+        if (dialog.ShowDialog() != true)
+            return;
+
+        var config = _configService.Load();
+        config.SaveDirectory = dialog.FolderName;
+        _configService.Save(config);
+        SaveDirectory = dialog.FolderName;
+    }
+
+    [RelayCommand]
+    private void OpenSaveDirectory()
+    {
+        try
+        {
+            Directory.CreateDirectory(SaveDirectory);
+            Process.Start(new ProcessStartInfo(SaveDirectory) { UseShellExecute = true });
+        }
+        catch (Exception)
+        {
+            // Dossier inaccessible (lecteur débranché…) : ne pas faire planter la page.
+        }
+    }
+
+    private static string ResolveSaveDirectory(AppConfig config) =>
+        config.SaveDirectory is { Length: > 0 } dir ? dir : ImageSaveService.DefaultDirectory;
 
     private static string LoadApiKey(AppConfig config, string presetId) =>
         config.ApiKeys.TryGetValue(presetId, out string? blob)

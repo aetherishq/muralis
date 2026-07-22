@@ -29,6 +29,10 @@ public class AppConfig
     /// <summary>Sources web ajoutées par l'utilisateur (presets du catalogue ou custom).</summary>
     public List<WallpaperSourceConfig> Sources { get; set; } = [];
 
+    /// <summary>Dossier où « Enregistrer le fond actuel » copie les images
+    /// (null/vide = <c>Images\Muralis</c> par défaut, cf. <c>ImageSaveService</c>).</summary>
+    public string? SaveDirectory { get; set; }
+
     /// <summary>Clés API par fournisseur (<see cref="WallpaperSourceConfig.PresetId"/> →
     /// blob DPAPI base64, cf. <c>ApiKeyProtector</c>) : une clé partagée par toutes les
     /// instances d'un même preset. Les sources personnalisées gardent leur clé par instance.</summary>

@@ -27,6 +27,7 @@ public partial class App : Application
     private ThemeService? _themeService;
     private ScreenService? _screenService;
     private WallpaperService? _wallpaperService;
+    private ImageSaveService? _imageSaveService;
 
     /// <summary>
     /// Vrai pendant l'arrêt volontaire (menu « Quitter »). Permet à la fenêtre de settings de se
@@ -56,6 +57,7 @@ public partial class App : Application
         var fetcher = new WebWallpaperFetcher(http, configService);
 
         _slideshowService = new SlideshowService(_wallpaperService, fetcher);
+        _imageSaveService = new ImageSaveService(configService, _slideshowService, fetcher);
         _themeService = new ThemeService();
 
         // Migrations de config (une fois, avant toute lecture par les VMs/services).
@@ -92,7 +94,7 @@ public partial class App : Application
     {
         var appSettings = new AppSettingsViewModel(_configService!, _themeService!, () => _settingsWindow, ApplyLanguage);
         var sources = new SourcesViewModel(_configService!);
-        _settingsViewModel = new SettingsViewModel(_configService!, _screenService!, _wallpaperService!, _slideshowService!, appSettings, sources);
+        _settingsViewModel = new SettingsViewModel(_configService!, _screenService!, _wallpaperService!, _slideshowService!, _imageSaveService!, appSettings, sources);
     }
 
     /// <summary>
@@ -137,6 +139,12 @@ public partial class App : Application
         nextItem.Click += (_, _) => _slideshowService?.AdvanceAll();
         menu.Items.Add(nextItem);
 
+        // Sous-menu reconstruit à chaque ouverture : les cibles web (et leurs images
+        // posées) changent au fil des Appliquer. Grisé quand rien n'est enregistrable.
+        var saveItem = new System.Windows.Controls.MenuItem { Header = Strings.Tray_SaveCurrent };
+        menu.Items.Add(saveItem);
+        menu.Opened += (_, _) => RebuildSaveMenu(saveItem);
+
         menu.Items.Add(new System.Windows.Controls.Separator());
 
         var exitItem = new System.Windows.Controls.MenuItem { Header = Strings.Tray_Quit };
@@ -154,6 +162,59 @@ public partial class App : Application
         tray.TrayMouseDoubleClick += (_, _) => ShowSettings();
         tray.ForceCreate();
         return tray;
+    }
+
+    /// <summary>Sous-menu « Enregistrer le fond actuel » : une entrée par écran affichant
+    /// une image web (« Tous les écrans » pour la cible unifiée).</summary>
+    private void RebuildSaveMenu(System.Windows.Controls.MenuItem saveItem)
+    {
+        saveItem.Items.Clear();
+        var targets = _slideshowService?.CurrentWebImages() ?? [];
+        saveItem.IsEnabled = targets.Count > 0;
+
+        var monitors = _screenService?.GetMonitors() ?? [];
+        foreach (var (deviceId, _) in targets)
+        {
+            int index = -1;
+            for (int i = 0; i < monitors.Count; i++)
+            {
+                if (monitors[i].DeviceId == deviceId)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            var item = new System.Windows.Controls.MenuItem
+            {
+                Header = deviceId.Length == 0 || index < 0
+                    ? Strings.Screen_AllScreens
+                    : string.Format(Strings.Screen_LabelFormat, index + 1),
+            };
+            string captured = deviceId;
+            item.Click += (_, _) => SaveCurrentWallpaper(captured);
+            saveItem.Items.Add(item);
+        }
+    }
+
+    /// <summary>Enregistre le fond web d'un écran et le signale par notification tray.</summary>
+    private void SaveCurrentWallpaper(string deviceId)
+    {
+        string message;
+        try
+        {
+            message = _imageSaveService!.SaveCurrent(deviceId) switch
+            {
+                (SaveOutcome.Saved, var name) => string.Format(Strings.Status_ImageSavedFormat, name),
+                (SaveOutcome.AlreadySaved, var name) => string.Format(Strings.Status_ImageAlreadySavedFormat, name),
+                _ => Strings.Status_NothingToSave,
+            };
+        }
+        catch (Exception ex)
+        {
+            message = string.Format(Strings.Status_FailedFormat, ex.Message);
+        }
+        _tray?.ShowNotification("Muralis", message);
     }
 
     private void ShowSettings()

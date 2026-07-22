@@ -35,6 +35,10 @@ public class WebWallpaperFetcher
     /// au dictionnaire lui-même doit être verrouillé.</summary>
     private readonly Dictionary<(string SourceId, string DeviceId), WallhavenPage> _wallhavenPages = [];
 
+    /// <summary>URL d'origine de chaque fichier servi cette session (le cache est nommé par
+    /// hash) — permet à « Enregistrer le fond actuel » de restituer le nom d'origine.</summary>
+    private readonly Dictionary<string, Uri> _urlByPath = [];
+
     public WebWallpaperFetcher(HttpClient http, ConfigService configService)
     {
         _http = http;
@@ -147,7 +151,17 @@ public class WebWallpaperFetcher
             Prune(directory, keepNewest: MaxCachedPerSource);
         }
 
+        lock (_urlByPath)
+            _urlByPath[path] = imageUrl;
         return path;
+    }
+
+    /// <summary>URL d'origine d'un fichier du cache (null si inconnue — fichier servi lors
+    /// d'une session précédente).</summary>
+    public Uri? SourceUrlFor(string path)
+    {
+        lock (_urlByPath)
+            return _urlByPath.GetValueOrDefault(path);
     }
 
     /// <summary>Clé effective d'une source : magasin central (par fournisseur, chiffré

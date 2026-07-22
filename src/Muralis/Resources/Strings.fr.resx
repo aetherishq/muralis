@@ -118,6 +118,9 @@
   <data name="Status_AppliedUnifiedFormat"><value>Même fond appliqué à {0} écran(s).</value></data>
   <data name="Status_AppliedFormat"><value>Appliqué à {0} écran(s).</value></data>
   <data name="Status_FailedFormat"><value>Échec : {0}</value></data>
+  <data name="Status_ImageSavedFormat"><value>Image enregistrée : {0}</value></data>
+  <data name="Status_ImageAlreadySavedFormat"><value>Déjà enregistrée : {0}</value></data>
+  <data name="Status_NothingToSave"><value>Aucune image web actuellement posée sur cet écran.</value></data>
 
   <!-- Page Paramètres -->
   <data name="Settings_Title"><value>Paramètres</value></data>
@@ -127,6 +130,10 @@
   <data name="Settings_LanguageDesc"><value>Suivre Windows, ou forcer le français ou l'anglais</value></data>
   <data name="Settings_ThemeTitle"><value>Thème</value></data>
   <data name="Settings_ThemeDesc"><value>Suivre Windows, ou forcer le mode sombre ou clair</value></data>
+  <data name="Settings_SaveDirTitle"><value>Dossier d'enregistrement</value></data>
+  <data name="Settings_OpenFolder"><value>Ouvrir</value></data>
+  <data name="Screen_SaveTooltip"><value>Enregistrer ce fond</value></data>
+  <data name="Tray_SaveCurrent"><value>Enregistrer le fond actuel</value></data>
   <data name="Settings_SectionApiKeys"><value>Clés API</value></data>
   <data name="Settings_WallhavenKeyDesc"><value>Partagée par toutes les sources Wallhaven ; requise pour le contenu NSFW</value></data>
   <data name="Option_System"><value>Système (Windows)</value></data>
