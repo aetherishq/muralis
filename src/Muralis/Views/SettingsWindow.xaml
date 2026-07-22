@@ -6,6 +6,7 @@
     xmlns:pages="clr-namespace:Muralis.Views.Pages"
     xmlns:res="clr-namespace:Muralis.Resources"
     Title="Muralis"
+    Icon="pack://application:,,,/Assets/muralis.ico"
     Width="1100"
     Height="700"
     MinWidth="900"

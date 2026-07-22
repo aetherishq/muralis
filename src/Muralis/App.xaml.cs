@@ -1,9 +1,6 @@
-using System.Globalization;
-using System.IO;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
 using Muralis.Resources;
@@ -79,7 +76,7 @@ public partial class App : Application
         _themeService.Apply(config.Theme, window: null);
 
         BuildViewModels();
-        _tray = CreateTrayIcon(configService.DataDirectory);
+        _tray = CreateTrayIcon();
 
         // Reprend les diaporamas persistés (les fonds fixes, eux, sont conservés par Windows).
         _slideshowService.Restart(configService.Load(), _screenService.GetMonitors());
@@ -123,12 +120,12 @@ public partial class App : Application
 
             _tray?.Dispose();
             BuildViewModels();
-            _tray = CreateTrayIcon(_configService!.DataDirectory);
+            _tray = CreateTrayIcon();
             ShowSettings();
         });
     }
 
-    private TaskbarIcon CreateTrayIcon(string dataDirectory)
+    private TaskbarIcon CreateTrayIcon()
     {
         var menu = new System.Windows.Controls.ContextMenu();
 
@@ -149,7 +146,9 @@ public partial class App : Application
         var tray = new TaskbarIcon
         {
             ToolTipText = "Muralis",
-            IconSource = CreateTrayIconSource(dataDirectory),
+            // Icône embarquée en ressource WPF : H.NotifyIcon relit les octets du .ico via
+            // l'URI pack et en tire une System.Drawing.Icon à la taille voulue.
+            IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/muralis.ico")),
             ContextMenu = menu,
         };
         tray.TrayMouseDoubleClick += (_, _) => ShowSettings();
@@ -188,75 +187,5 @@ public partial class App : Application
     {
         _tray?.Dispose();
         base.OnExit(e);
-    }
-
-    /// <summary>
-    /// Icône de tray générée à la volée (carré accentué + « M »), écrite en PNG dans le dossier de
-    /// données puis chargée par URI. H.NotifyIcon ne convertit pas un <see cref="RenderTargetBitmap"/>
-    /// directement : il faut un <see cref="BitmapImage"/> adossé à un fichier. Remplaçable par une
-    /// vraie icône plus tard.
-    /// </summary>
-    private static ImageSource CreateTrayIconSource(string dataDirectory)
-    {
-        const int size = 32;
-        var visual = new DrawingVisual();
-        using (DrawingContext dc = visual.RenderOpen())
-        {
-            var background = new SolidColorBrush(Color.FromRgb(0x2C, 0x7E, 0xF8));
-            dc.DrawRoundedRectangle(background, null, new Rect(0, 0, size, size), 6, 6);
-
-            var text = new FormattedText(
-                "M",
-                CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
-                20,
-                Brushes.White,
-                1.0);
-            dc.DrawText(text, new Point((size - text.Width) / 2, (size - text.Height) / 2));
-        }
-
-        var rtb = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-        rtb.Render(visual);
-        rtb.Freeze();
-
-        // Encoder le rendu en PNG…
-        byte[] pngBytes;
-        using (var ms = new MemoryStream())
-        {
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(rtb));
-            encoder.Save(ms);
-            pngBytes = ms.ToArray();
-        }
-
-        // …puis l'emballer dans un vrai fichier .ico (PNG encapsulé, format Vista+),
-        // car H.NotifyIcon reconstruit une System.Drawing.Icon à partir des octets du fichier.
-        Directory.CreateDirectory(dataDirectory);
-        string iconPath = Path.Combine(dataDirectory, "tray.ico");
-        using (var fs = new FileStream(iconPath, FileMode.Create, FileAccess.Write))
-        using (var w = new BinaryWriter(fs))
-        {
-            w.Write((short)0);            // ICONDIR.reserved
-            w.Write((short)1);            // ICONDIR.type = icône
-            w.Write((short)1);            // ICONDIR.count
-            w.Write((byte)size);          // largeur
-            w.Write((byte)size);          // hauteur
-            w.Write((byte)0);             // nb couleurs (0 = >256)
-            w.Write((byte)0);             // réservé
-            w.Write((short)1);            // plans
-            w.Write((short)32);           // bits/pixel
-            w.Write(pngBytes.Length);     // taille des données image
-            w.Write(6 + 16);              // offset des données (en-tête + 1 entrée)
-            w.Write(pngBytes);
-        }
-
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.UriSource = new Uri(iconPath, UriKind.Absolute);
-        image.EndInit();
-        image.Freeze();
-        return image;
     }
 }
