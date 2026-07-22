@@ -22,6 +22,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Icône embarquée en ressource WPF : fenêtre (Icon) et tray (IconSource) via URI pack.
+         ApplicationIcon ci-dessus ne couvre que l'icône Win32 de l'exe. -->
+    <Resource Include="Assets\muralis.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
