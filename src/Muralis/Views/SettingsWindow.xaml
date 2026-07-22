@@ -26,7 +26,14 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Muralis" />
+        <!-- ExtendsContentIntoTitleBar masque la barre native (et son icône) : le ui:TitleBar
+             a sa propre propriété Icon, indépendante de l'Icon de la fenêtre (Alt-Tab/barre
+             des tâches). -->
+        <ui:TitleBar Grid.Row="0" Title="Muralis">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/muralis.ico" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
 
         <!-- Pane gauche fixe façon Paramètres Windows 11 (DESIGN.md — Navigation).
              Icônes Segoe Fluent : E7F4 TVMonitor, E774 Globe, E713 Settings.
