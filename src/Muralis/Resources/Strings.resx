@@ -85,6 +85,21 @@
   <data name="Sources_PlaceholderHeader"><value>API header (e.g. X-API-Key)</value></data>
   <data name="Sources_PlaceholderKey"><value>API key (optional)</value></data>
   <data name="Sources_KindCaption"><value>Source type</value></data>
+  <data name="Wallhaven_TagsPlaceholder"><value>Tags (comma-separated, - to exclude)</value></data>
+  <data name="Wallhaven_TagsCaption"><value>Every listed tag is required; e.g. nature, -anime</value></data>
+  <data name="Wallhaven_Categories"><value>Categories</value></data>
+  <data name="Wallhaven_CategoryGeneral"><value>General</value></data>
+  <data name="Wallhaven_CategoryAnime"><value>Anime</value></data>
+  <data name="Wallhaven_CategoryPeople"><value>People</value></data>
+  <data name="Wallhaven_Purity"><value>Content</value></data>
+  <data name="Wallhaven_PuritySfw"><value>SFW</value></data>
+  <data name="Wallhaven_PuritySketchy"><value>Sketchy</value></data>
+  <data name="Wallhaven_PurityNsfw"><value>NSFW</value></data>
+  <data name="Wallhaven_NsfwKeyWarning"><value>NSFW content requires your Wallhaven API key — Settings &gt; API keys.</value></data>
+  <data name="Wallhaven_AutoFit"><value>Fit each screen automatically</value></data>
+  <data name="Wallhaven_AutoFitDesc"><value>Minimum resolution and orientation are computed per screen at request time</value></data>
+  <data name="Wallhaven_AtLeastPlaceholder"><value>Minimum resolution (e.g. 1920x1080)</value></data>
+  <data name="Wallhaven_RatiosPlaceholder"><value>Ratios (e.g. 16x9,16x10)</value></data>
   <data name="SourceKind_Random"><value>Random (slideshow)</value></data>
   <data name="SourceKind_Daily"><value>Image of the day (fixed image)</value></data>
 
@@ -125,5 +140,5 @@
 
   <!-- Notes des presets du catalogue (les noms, identités persistées, ne sont pas traduits) -->
   <data name="Preset_BingNote"><value>Bing image of the day, no key required.</value></data>
-  <data name="Preset_WallhavenNote"><value>SFW by default; edit purity/categories in the URL. NSFW: add your account key in Settings &gt; API keys.</value></data>
+  <data name="Preset_WallhavenNote"><value>Random wallpapers; tags, categories and content are set on the source card. NSFW: add your key in Settings &gt; API keys.</value></data>
 </root>

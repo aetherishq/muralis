@@ -2,6 +2,7 @@ using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Muralis.Models;
 
 namespace Muralis.Services.Sources;
@@ -11,15 +12,28 @@ namespace Muralis.Services.Sources;
 /// <c>%LocalAppData%\Muralis\webcache\&lt;Id de source&gt;\</c>, pour que le pipeline habituel
 /// (composition par moniteur, <c>SetWallpaper</c>) travaille toujours sur un fichier.
 /// Le dossier est nommé par Id (stable au renommage, propre à chaque instance) ;
-/// le cache est purgé au fil de l'eau (12 fichiers max par source).
+/// le cache est purgé au fil de l'eau.
+///
+/// Wallhaven : l'URL est construite à la requête depuis les options typées (adaptée à
+/// l'écran destinataire), et une <b>page de 24 résultats</b> est récupérée d'un coup —
+/// les rotations suivantes piochent dedans localement (quota API ~45 req/min). Le cache
+/// de page vit en mémoire, par couple (source, écran), invalidé après ~1 h ou à épuisement.
 /// </summary>
 public class WebWallpaperFetcher
 {
-    private const int MaxCachedPerSource = 12;
+    /// <summary>Assez pour couvrir une page Wallhaven complète sans ré-évincer sa rotation.</summary>
+    private const int MaxCachedPerSource = 30;
+
+    private static readonly TimeSpan WallhavenPageLifetime = TimeSpan.FromHours(1);
 
     private readonly HttpClient _http;
     private readonly ConfigService _configService;
     private readonly string _cacheRoot;
+
+    /// <summary>Pages Wallhaven en mémoire. Un couple (source, écran) n'a qu'un seul
+    /// consommateur (sa cible de diaporama, protégée par FetchInProgress) : seul l'accès
+    /// au dictionnaire lui-même doit être verrouillé.</summary>
+    private readonly Dictionary<(string SourceId, string DeviceId), WallhavenPage> _wallhavenPages = [];
 
     public WebWallpaperFetcher(HttpClient http, ConfigService configService)
     {
@@ -29,38 +43,24 @@ public class WebWallpaperFetcher
     }
 
     /// <summary>
-    /// Résout l'image courante de la source et la matérialise en fichier local. Le nom de
+    /// Résout l'image courante de la source et la matérialise en fichier local.
+    /// <paramref name="monitor"/> : écran destinataire, pour l'adaptation automatique
+    /// Wallhaven (null en mode unifié — les filtres d'écran sont omis). Le nom de
     /// fichier est un hash de l'URL d'image : une URL déjà en cache n'est pas re-téléchargée
     /// et rend le même chemin — l'appelant peut ainsi détecter « image inchangée » par simple
     /// comparaison de chemins (source quotidienne, doublon d'une source aléatoire). Retourne
     /// <c>null</c> en cas d'échec (réseau, JSON inattendu…) — l'appelant garde alors le fond
     /// courant et retentera au tick suivant.
     /// </summary>
-    public async Task<string?> FetchAsync(WallpaperSourceConfig source, CancellationToken ct)
+    public async Task<string?> FetchAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
     {
         try
         {
-            var wallpaperSource = new HttpJsonSource(_http, source, ResolveApiKey(source));
-            Uri imageUrl = await wallpaperSource.GetImageUrlAsync(ct).ConfigureAwait(false);
+            Uri imageUrl = source is { IsWallhaven: true, Wallhaven: not null }
+                ? await NextWallhavenImageAsync(source, monitor, ct).ConfigureAwait(false)
+                : await new HttpJsonSource(_http, source, ResolveApiKey(source)).GetImageUrlAsync(ct).ConfigureAwait(false);
 
-            string directory = Path.Combine(_cacheRoot, Sanitize(source.Id));
-            Directory.CreateDirectory(directory);
-
-            string fileName = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(imageUrl.AbsoluteUri)))[..16]
-                + GuessExtension(imageUrl);
-            string path = Path.Combine(directory, fileName);
-
-            if (!File.Exists(path))
-            {
-                byte[] bytes = await _http.GetByteArrayAsync(imageUrl, ct).ConfigureAwait(false);
-                if (bytes.Length == 0)
-                    return null;
-
-                await File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
-                Prune(directory, keepNewest: MaxCachedPerSource);
-            }
-
-            return path;
+            return await DownloadAsync(source.Id, imageUrl, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -70,6 +70,79 @@ public class WebWallpaperFetcher
         {
             return null;
         }
+    }
+
+    /// <summary>Prochaine image de la page Wallhaven du couple (source, écran) —
+    /// re-remplie si vide, épuisée ou périmée. Une page vide (filtres trop stricts,
+    /// NSFW sans clé…) lève : l'appelant signale l'échec.</summary>
+    private async Task<Uri> NextWallhavenImageAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
+    {
+        var key = (source.Id, monitor?.DeviceId ?? string.Empty);
+
+        WallhavenPage? page;
+        lock (_wallhavenPages)
+            _wallhavenPages.TryGetValue(key, out page);
+
+        if (page is null || page.Remaining.Count == 0 || DateTime.UtcNow - page.FetchedAtUtc > WallhavenPageLifetime)
+        {
+            page = await FetchWallhavenPageAsync(source, monitor, ct).ConfigureAwait(false);
+            lock (_wallhavenPages)
+                _wallhavenPages[key] = page;
+        }
+
+        if (page.Remaining.Count == 0)
+            throw new InvalidOperationException("Recherche Wallhaven sans résultat.");
+        return page.Remaining.Dequeue();
+    }
+
+    private async Task<WallhavenPage> FetchWallhavenPageAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
+    {
+        string url = WallhavenUrlBuilder.Build(source.Wallhaven!, monitor);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        string? apiKey = ResolveApiKey(source);
+        if (!string.IsNullOrWhiteSpace(source.ApiKeyHeader) && !string.IsNullOrWhiteSpace(apiKey))
+            request.Headers.TryAddWithoutValidation(source.ApiKeyHeader, apiKey);
+
+        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+        var page = new WallhavenPage { FetchedAtUtc = DateTime.UtcNow };
+        using var document = JsonDocument.Parse(json);
+        foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
+        {
+            if (item.TryGetProperty("path", out var path)
+                && path.GetString() is { Length: > 0 } value
+                && Uri.TryCreate(value, UriKind.Absolute, out var imageUrl))
+            {
+                page.Remaining.Enqueue(imageUrl);
+            }
+        }
+        return page;
+    }
+
+    /// <summary>Matérialise l'URL d'image en fichier du cache disque (nom = hash d'URL,
+    /// re-téléchargement évité si déjà présent).</summary>
+    private async Task<string?> DownloadAsync(string sourceId, Uri imageUrl, CancellationToken ct)
+    {
+        string directory = Path.Combine(_cacheRoot, Sanitize(sourceId));
+        Directory.CreateDirectory(directory);
+
+        string fileName = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(imageUrl.AbsoluteUri)))[..16]
+            + GuessExtension(imageUrl);
+        string path = Path.Combine(directory, fileName);
+
+        if (!File.Exists(path))
+        {
+            byte[] bytes = await _http.GetByteArrayAsync(imageUrl, ct).ConfigureAwait(false);
+            if (bytes.Length == 0)
+                return null;
+
+            await File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+            Prune(directory, keepNewest: MaxCachedPerSource);
+        }
+
+        return path;
     }
 
     /// <summary>Clé effective d'une source : magasin central (par fournisseur, chiffré
@@ -112,5 +185,11 @@ public class WebWallpaperFetcher
         {
             // Purge best-effort : un fichier verrouillé (fond en cours) sera repris plus tard.
         }
+    }
+
+    private sealed class WallhavenPage
+    {
+        public Queue<Uri> Remaining { get; } = new();
+        public required DateTime FetchedAtUtc { get; init; }
     }
 }

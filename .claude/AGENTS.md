@@ -68,7 +68,7 @@ public interface IWallpaperSource
 
 Chaque source a un `SourceKind` : `Random` (chaque requête → image différente, proposée en **diaporama**) ou `Daily` (image du jour, ex. Bing, proposée dans la **card Image** en mode fixe — re-vérifiée en interne toutes les heures et re-posée uniquement si l'URL d'image change ; le cache web est nommé par hash d'URL).
 
-Implémentation générique config-driven pour toute source qui renvoie du JSON avec une URL d'image dedans (évite de coder une classe par source) :
+Implémentation générique config-driven pour toute source qui renvoie du JSON avec une URL d'image dedans (évite de coder une classe par source). **Exception assumée (V1.2) : Wallhaven** — formulaire typé (`WallhavenSourceOptions` : tags stricts `+tag`, catégories, purity, adaptation auto à l'écran destinataire via `atleast`/`ratios` calculés à la requête), URL construite par `WallhavenUrlBuilder`, et récupération d'une **page de 24 résultats** piochée localement (cache mémoire par couple source/écran, ~1 h) pour respecter le quota API (~45 req/min) :
 
 ```csharp
 public class HttpJsonSource : IWallpaperSource

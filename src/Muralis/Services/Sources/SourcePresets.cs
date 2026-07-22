@@ -35,6 +35,8 @@ public sealed record SourcePreset(string PresetId, string Name, string NoteKey)
         RequestUrl = RequestUrl,
         ImageUrlJsonPath = ImageUrlJsonPath,
         ApiKeyHeader = ApiKeyHeader,
+        // Wallhaven : formulaire typé aux défauts (general+people, SFW, adaptation écran).
+        Wallhaven = PresetId == WallpaperSourceConfig.WallhavenPresetId ? new WallhavenSourceOptions() : null,
     };
 }
 
@@ -52,9 +54,11 @@ public static class SourcePresets
             ImageUrlJsonPath = "images[0].url",
             Kind = SourceKind.Daily,
         },
+        // L'URL réelle de recherche est construite à chaque requête depuis les options du
+        // formulaire (WallhavenUrlBuilder) : RequestUrl ne sert qu'à l'affichage du header.
         new("wallhaven", "Wallhaven", nameof(Strings.Preset_WallhavenNote))
         {
-            RequestUrl = "https://wallhaven.cc/api/v1/search?sorting=random&categories=111&purity=100",
+            RequestUrl = WallhavenUrlBuilder.SearchBaseUrl,
             ImageUrlJsonPath = "data[0].path",
             ApiKeyHeader = "X-API-Key",
         },
