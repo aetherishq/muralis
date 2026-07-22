@@ -58,6 +58,7 @@ public partial class App : Application
 
         _slideshowService = new SlideshowService(_wallpaperService, fetcher);
         _imageSaveService = new ImageSaveService(configService, _slideshowService, fetcher);
+        var cacheMaintenance = new CacheMaintenanceService(configService, _wallpaperService);
         _themeService = new ThemeService();
 
         // Migrations de config (une fois, avant toute lecture par les VMs/services).
@@ -77,11 +78,18 @@ public partial class App : Application
         // Thème depuis la config (le watcher système sera branché à la création de la fenêtre).
         _themeService.Apply(config.Theme, window: null);
 
+        // Entretien des caches : reliquats d'anciennes versions + plafond au démarrage,
+        // puis passe de plafond throttlée après chaque pose de fond.
+        var startupMonitors = _screenService.GetMonitors();
+        cacheMaintenance.CleanupAtStartup(configService.Load(), startupMonitors);
+        _slideshowService.WallpaperApplied += () =>
+            cacheMaintenance.PruneComposedIfDue(_screenService!.GetMonitors());
+
         BuildViewModels();
         _tray = CreateTrayIcon();
 
         // Reprend les diaporamas persistés (les fonds fixes, eux, sont conservés par Windows).
-        _slideshowService.Restart(configService.Load(), _screenService.GetMonitors());
+        _slideshowService.Restart(configService.Load(), startupMonitors);
 
         // Sans --minimized (double-clic sur le raccourci) : ouvrir directement les paramètres.
         bool minimized = e.Args.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase));

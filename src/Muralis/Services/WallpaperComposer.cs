@@ -40,7 +40,13 @@ public class WallpaperComposer
             CacheKey(sourcePath, targetWidth, targetHeight, mode) + ".png");
 
         if (File.Exists(outputPath))
+        {
+            // « Touch » : les composés du cycle actif restent jeunes — l'éviction du
+            // cache (CacheMaintenanceService, plus anciens d'abord) devient signifiante.
+            try { File.SetLastWriteTimeUtc(outputPath, DateTime.UtcNow); }
+            catch (Exception) { /* meilleur effort */ }
             return outputPath;
+        }
 
         var source = LoadBitmap(sourcePath);
         var rendered = Render(source, targetWidth, targetHeight, mode);
