@@ -50,15 +50,16 @@ public class WallpaperComposer
 
     private static BitmapSource LoadBitmap(string path)
     {
-        // OnLoad : décode immédiatement et ne garde pas de verrou sur le fichier.
-        var bmp = new BitmapImage();
-        bmp.BeginInit();
-        bmp.CacheOption = BitmapCacheOption.OnLoad;
-        bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-        bmp.UriSource = new Uri(path, UriKind.Absolute);
-        bmp.EndInit();
-        bmp.Freeze();
-        return bmp;
+        // Décodage STRICT via stream. Avec BitmapImage.UriSource, le décodage peut être
+        // différé jusqu'au RenderTargetBitmap.Render, qui avale l'échec (fichier OneDrive
+        // en cours d'hydratation, verrou antivirus/sync…) et rend la toile noire — mise en
+        // cache pour toujours (issue #20). Ici tout échec lève : le diaporama garde le fond
+        // courant et retente au tick suivant. OnLoad décode intégralement puis libère le fichier.
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+        BitmapSource frame = decoder.Frames[0];
+        frame.Freeze();
+        return frame;
     }
 
     private static RenderTargetBitmap Render(BitmapSource source, int tw, int th, DesktopWallpaperPosition mode)
@@ -133,8 +134,13 @@ public class WallpaperComposer
     {
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write);
-        encoder.Save(stream);
+
+        // Écriture atomique : un kill en pleine écriture ne doit jamais laisser un PNG
+        // partiel que le cache resservirait indéfiniment.
+        string tmp = path + ".tmp";
+        using (var stream = new FileStream(tmp, FileMode.Create, FileAccess.Write))
+            encoder.Save(stream);
+        File.Move(tmp, path, overwrite: true);
     }
 
     private static string CacheKey(string sourcePath, int tw, int th, DesktopWallpaperPosition mode)
@@ -142,7 +148,9 @@ public class WallpaperComposer
         long stamp = 0;
         try { stamp = File.GetLastWriteTimeUtc(sourcePath).Ticks; } catch { /* source volatile */ }
 
-        string raw = $"{sourcePath.ToLowerInvariant()}|{stamp}|{tw}x{th}|{mode}";
+        // « v2 » : invalide les caches antérieurs au décodage strict, potentiellement
+        // empoisonnés par des rendus noirs silencieux (issue #20).
+        string raw = $"v2|{sourcePath.ToLowerInvariant()}|{stamp}|{tw}x{th}|{mode}";
         byte[] hash = SHA1.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(hash);
     }
