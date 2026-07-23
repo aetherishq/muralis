@@ -22,6 +22,8 @@ requested by the user operating it.
 
 - Configuration is stored locally in `%LocalAppData%\Muralis`.
 - The app contacts third-party image APIs (e.g. Bing, Wallhaven) **only** when the
-  user configures a web wallpaper source. API keys entered by the user are stored
-  locally and encrypted (Windows DPAPI, current-user scope).
+  user configures a web wallpaper source. API keys for the built-in providers,
+  entered in Settings, are stored locally and encrypted (Windows DPAPI,
+  current-user scope). A key entered on a user-defined custom source is stored
+  locally in the configuration file, unencrypted.
 - No telemetry, no analytics, and no data is sent to the maintainer.
