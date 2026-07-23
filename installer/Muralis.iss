@@ -9,7 +9,7 @@
 #define MyAppName "Muralis"
 #define MyAppVersion "1.2.1"
 #define MyAppPublisher "Arkatul"
-#define MyAppURL "https://github.com/Arkatul/muralis"
+#define MyAppURL "https://github.com/aetherishq/muralis"
 #define MyAppExeName "Muralis.exe"
 #define PublishDir "..\src\Muralis\bin\Release\net10.0-windows\win-x64\publish"
 
