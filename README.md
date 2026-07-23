@@ -7,7 +7,7 @@
 <p align="center">
   A tray-first, multi-monitor wallpaper manager for Windows 11.
   <br />
-  <a href="https://github.com/Arkatul/muralis/releases/latest"><img src="https://img.shields.io/github/v/release/Arkatul/muralis" alt="Latest release" /></a>
+  <a href="https://github.com/aetherishq/muralis/releases/latest"><img src="https://img.shields.io/github/v/release/aetherishq/muralis" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0" /></a>
 </p>
 
@@ -32,9 +32,21 @@ Muralis lives in the notification area and gives every monitor its own wallpaper
 
 ## Installation
 
-Download `Muralis-Setup-x.y.z.exe` from the [latest release](https://github.com/Arkatul/muralis/releases/latest) and run it — the installer is bilingual (English/French) and the app is self-contained, no runtime to install. An optional task starts Muralis with Windows, minimized to the tray.
+Download `Muralis-Setup-x.y.z.exe` from the [latest release](https://github.com/aetherishq/muralis/releases/latest) and run it — the installer is bilingual (English/French) and the app is self-contained, no runtime to install. An optional task starts Muralis with Windows, minimized to the tray.
 
 Settings and caches live in `%LocalAppData%\Muralis` (per-user); uninstalling removes the app and its registry entries.
+
+## Code signing
+
+Muralis release binaries are code-signed. The signing certificate is issued by the
+[SignPath Foundation](https://signpath.org) and signing is provided free of charge by
+[SignPath.io](https://signpath.io) for open-source projects. See the
+[code signing policy](CODE_SIGNING_POLICY.md) for details.
+
+> **Note:** Windows SmartScreen builds trust per certificate based on download volume.
+> New releases may still show a "Windows protected your PC" prompt for a short period
+> until enough clean downloads have accumulated. Click **More info → Run anyway** if you
+> see it; it disappears as the certificate's reputation grows.
 
 ## Custom web sources
 
@@ -53,7 +65,7 @@ The optional header/key pair covers APIs that authenticate via an HTTP header (e
 Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) (Windows).
 
 ```powershell
-git clone https://github.com/Arkatul/muralis.git
+git clone https://github.com/aetherishq/muralis.git
 cd muralis
 dotnet build src/Muralis/Muralis.csproj
 ```
@@ -67,3 +79,8 @@ To produce the installer (requires [Inno Setup 6](https://jrsoftware.org/isinfo.
 ## License
 
 Muralis is free software, released under the [GNU General Public License v3.0](LICENSE). You may use, study, share and modify it; derivative works must remain open source under the same license.
+
+## Acknowledgements
+
+Muralis was co-developed with [Claude](https://claude.ai) (Anthropic), used as an
+AI pair-programmer throughout its design and implementation.
