@@ -28,16 +28,23 @@ Lancement avec `--minimized` : ne montre rien, juste le tray. Sans argument (dou
 ```csharp
 public class ScreenConfig
 {
-    public string DeviceId { get; set; }       // device path du moniteur, pas juste un index
+    public string DeviceId { get; set; }        // device path du moniteur, pas juste un index
     public WallpaperMode Mode { get; set; }     // Fixed | Slideshow
-    public string SourceType { get; set; }      // "LocalFolder" | nom d'une IWallpaperSource
-    public string SourcePath { get; set; }       // chemin local ou config source web
+    public string SourceType { get; set; }      // "LocalFile" | "LocalFolder" | Id d'une WallpaperSourceConfig
+    public string SourcePath { get; set; }      // chemin local (image fixe ou dossier de diaporama)
     public TimeSpan SlideshowInterval { get; set; }
+    public bool Shuffle { get; set; }           // diaporama : ordre aléatoire (true) ou alphabétique
     public DesktopWallpaperPosition DisplayMode { get; set; } // voir mapping natif ci-dessous
 }
 ```
 
+Depuis la config V2, les sources web sont référencées par l'**`Id` de leur `WallpaperSourceConfig`** (jamais par nom — le nom est renommable). `"LocalFile"` (const `ScreenConfig.LocalFileSourceType`) désigne une image fixe locale, `"LocalFolder"` un diaporama de dossier local.
+
 Toujours identifier les écrans par leur **device path** (via `IDesktopWallpaper.GetMonitorDevicePathAt`), jamais par un index d'écran — l'ordre peut changer entre deux sessions Windows (reconnexion, changement de résolution, etc.).
+
+**Mode unifié** : `AppConfig.Unified` + `AppConfig.UnifiedConfig` appliquent une même `ScreenConfig` à tous les écrans (c'est aussi le seul mode où `span` a un sens). `Unified = false` : chaque écran a son entrée dans `AppConfig.Screens`.
+
+La config est versionnée (`AppConfig.Version`) ; `ConfigMigrations.Apply` tourne au démarrage avant toute lecture par les services/ViewModels — toute évolution de schéma passe par une migration, jamais par un breaking change silencieux.
 
 ### Interop natif — API Windows à utiliser en priorité
 
@@ -91,6 +98,8 @@ Une seule liste de presets, proposés dans l'UI "Ajouter une source" (catalogue 
 
 `config.json` d'un profil donné ne contient que les sources que **cet utilisateur** a choisi d'ajouter depuis ce catalogue (+ éventuelles sources custom). Rien d'autre à gérer côté code.
 
+**Clés API** : jamais en clair sur disque. `AppConfig.ApiKeys` mappe `WallpaperSourceConfig.PresetId` → blob DPAPI base64 (chiffrement/déchiffrement via `ApiKeyProtector`) — une clé **partagée par toutes les instances d'un même preset**, saisie une fois dans Settings. Les sources personnalisées, elles, gardent leur clé **par instance** dans `WallpaperSourceConfig.ApiKey` (en clair dans config.json — limite assumée, sous la responsabilité de l'utilisateur).
+
 ### Démarrage avec Windows
 
 ```csharp
@@ -99,15 +108,29 @@ private const string AppName = "Muralis";
 
 public static void SetStartup(bool enable)
 {
-    using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+    using var key = Registry.CurrentUser.CreateSubKey(RunKey); // CreateSubKey, pas OpenSubKey (peut renvoyer null)
     if (enable)
-        key.SetValue(AppName, $"\"{Process.GetCurrentProcess().MainModule.FileName}\" --minimized");
+    {
+        string exePath = Process.GetCurrentProcess().MainModule?.FileName
+            ?? Environment.ProcessPath
+            ?? throw new InvalidOperationException(...);
+        key.SetValue(AppName, $"\"{exePath}\" --minimized");
+    }
     else
+    {
         key.DeleteValue(AppName, throwOnMissingValue: false);
+    }
 }
 ```
 
+Implémentation de référence : `src/Muralis/Services/StartupService.cs`.
+
 La checkbox "Start when Windows starts" dans les settings doit lire son état depuis le registre directement (`key.GetValue(AppName) != null`), jamais depuis une valeur miroir dans `config.json` — sinon désync possible si l'utilisateur modifie le registre à la main.
+
+### Services transverses
+
+- **`ImageSaveService`** — « Enregistrer le fond actuel » (tray ou sélecteur de moniteur) : copie l'image web affichée, avec son nom de fichier d'origine, vers `AppConfig.SaveDirectory` (null/vide = `Images\Muralis`).
+- **`CacheMaintenanceService`** — entretien des caches d'images dans `%LocalAppData%\Muralis` : nettoyage des reliquats d'anciennes versions + plafonnement au démarrage, puis passe de plafond throttlée après chaque pose de fond (abonnée à `SlideshowService.WallpaperApplied`).
 
 ## Design de l'UI
 
@@ -139,7 +162,7 @@ Le repo a un `README.md` (anglais) avec captures (`assets/screenshots/`) et une 
 
 ### Captures d'écran des itérations
 
-Les captures de validation visuelle sont déposées dans `C:\Users\alexi\Pictures\Screenshots` (éventuellement un sous-dossier par sujet, ex. `muralis\`). Quand l'utilisateur dit « screenshot 3 » / « capture 3 », cela désigne le fichier `3.png` le plus récent de ce dossier — pas besoin qu'il re-précise le chemin.
+Les captures de validation visuelle sont déposées dans `%UserProfile%\Pictures\Screenshots` (éventuellement un sous-dossier par sujet, ex. `muralis\`). Quand l'utilisateur dit « screenshot 3 » / « capture 3 », cela désigne le fichier `3.png` le plus récent de ce dossier — pas besoin qu'il re-précise le chemin.
 
 Terminal Windows natif (PowerShell 7+ recommandé, `cmd.exe` fonctionne aussi) — **pas WSL**. WPF dépend d'API Win32/COM natives (`IDesktopWallpaper`, registre `HKCU`, rendu DirectX/PresentationCore) qui n'existent pas sous Linux ; même si `dotnet build` peut techniquement restaurer/compiler une cible `net10.0-windows` depuis WSL, l'app ne peut ni s'exécuter ni être testée dans cet environnement. Inno Setup est également un outil Windows natif.
 
@@ -161,3 +184,4 @@ Vérifier après réouverture du terminal : `dotnet --version` (doit afficher du
   - `PrivilegesRequiredOverridesAllowed=dialog` pour laisser le choix "pour tout le monde" (Program Files, admin) vs "pour moi seulement" (`{localappdata}\Programs`, pas d'admin) — constantes `{autopf}` / `{autoprograms}` / `{autostartmenu}` obligatoires dans le script, jamais `{pf}` en dur.
   - Config toujours dans `{localappdata}\Muralis\config.json`, quel que soit le mode d'install choisi.
   - Crée le raccourci menu démarrer, propose la case "lancer au démarrage" via l'appel à `SetStartup(true)` au premier lancement post-install.
+- **Signature de code** : les binaires de release sont signés via **SignPath Foundation** (gratuit pour l'OSS). Politique publique : `CODE_SIGNING_POLICY.md` (+ section « Code signing » du README). Mise en place en cours — plan détaillé dans `.claude/plan-signpath.md` (workflow GitHub Actions de release, candidature SignPath, intégration signing). L'EV ne bypass plus SmartScreen (2024) : la réputation se construit avec les téléchargements et se transfère entre versions d'un même certificat.
