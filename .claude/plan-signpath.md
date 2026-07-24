@@ -10,9 +10,11 @@ Contexte acté (ne pas rediscuter) :
 
 Ordre : Étape A → B → C → D. Les étapes B et D demandent des actions utilisateur (marquées **👤 UTILISATEUR**) — s'arrêter et les demander explicitement quand on y arrive.
 
+> **État au 2026-07-24** : A ✅ · B 🕒 candidature soumise, en attente d'acceptation · C ✅ · D/E/F ⬜ (bloquées par B).
+
 ---
 
-## Étape A — Workflow de release (build vérifiable exigé par SignPath)
+## Étape A — Workflow de release (build vérifiable exigé par SignPath) · ✅ faite
 
 Créer `.github/workflows/release.yml` :
 
@@ -31,13 +33,15 @@ Vérification : lancer un run via `workflow_dispatch` (gh CLI ou UI) et confirme
 
 Commit : `ci: add release workflow (build installer on tag)`.
 
-## Étape B — Candidature SignPath Foundation
+## Étape B — Candidature SignPath Foundation · 🕒 soumise, en attente
 
 **👤 UTILISATEUR (bloquant)** : soumettre la candidature sur `https://signpath.org` (bouton Apply) avec : URL du repo, licence GPL-3.0, lien vers `CODE_SIGNING_POLICY.md`, description de l'app. Créer le compte SignPath avec MFA. Attendre l'acceptation (peut prendre plusieurs jours).
 
 Claude Code : préparer un bloc de texte prêt-à-coller (description courte EN de Muralis + liens) pour le formulaire, puis s'arrêter.
 
-## Étape C — Pendant l'attente (optionnel, non bloquant)
+**Fait le 2026-07-24** : compte créé, candidature soumise. Prochaine action à l'acceptation → étape D.
+
+## Étape C — Pendant l'attente (optionnel, non bloquant) · ✅ faite
 
 - Vérifier que la mention DPAPI de `CODE_SIGNING_POLICY.md` correspond au code réel (clés API chiffrées `ProtectedData`, scope CurrentUser). Corriger le doc ou le code si écart.
 - Préparer l'étape winget (ne PAS soumettre) : générer un manifeste `wingetcreate` de la dernière release comme brouillon dans `tools/winget/`. Rappel : winget n'enlève pas SmartScreen, c'est un canal de distribution en plus, à activer après la première release signée.
