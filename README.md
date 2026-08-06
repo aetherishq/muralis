@@ -36,17 +36,17 @@ Download `Muralis-Setup-x.y.z.exe` from the [latest release](https://github.com/
 
 Settings and caches live in `%LocalAppData%\Muralis` (per-user); uninstalling removes the app and its registry entries.
 
-## Code signing
+## A note on SmartScreen
 
-Muralis release binaries are code-signed. The signing certificate is issued by the
-[SignPath Foundation](https://signpath.org) and signing is provided free of charge by
-[SignPath.io](https://signpath.io) for open-source projects. See the
-[code signing policy](CODE_SIGNING_POLICY.md) for details.
+Muralis releases are currently **not code-signed** — free open-source signing was
+applied for, but the project is still too young to qualify. Windows SmartScreen may
+therefore show a "Windows protected your PC" prompt when you run the installer: click
+**More info → Run anyway**. SmartScreen reputation builds as clean downloads
+accumulate, and code signing will be revisited as the project grows.
 
-> **Note:** Windows SmartScreen builds trust per certificate based on download volume.
-> New releases may still show a "Windows protected your PC" prompt for a short period
-> until enough clean downloads have accumulated. Click **More info → Run anyway** if you
-> see it; it disappears as the certificate's reputation grows.
+Muralis stores everything locally, sends no telemetry, and only contacts an image API
+when you configure a web source. If in doubt, the source is right here — you can
+[build it yourself](#building-from-source).
 
 ## Custom web sources
 

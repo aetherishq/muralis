@@ -10,7 +10,7 @@ Contexte acté (ne pas rediscuter) :
 
 Ordre : Étape A → B → C → D. Les étapes B et D demandent des actions utilisateur (marquées **👤 UTILISATEUR**) — s'arrêter et les demander explicitement quand on y arrive.
 
-> **État au 2026-07-24** : A ✅ · B 🕒 candidature soumise, en attente d'acceptation · C ✅ · D/E/F ⬜ (bloquées par B).
+> **État au 2026-08-06 — PLAN GELÉ** : A ✅ · B ❌ candidature **refusée** (projet trop peu connu) · C ✅ · D/E gelées (sans certificat) · F (winget) **reste faisable sans signature**. Distribution non signée assumée (README, section « A note on SmartScreen »). `CODE_SIGNING_POLICY.md` retiré du repo (récupérable dans l'historique git). Pistes de relance en fin de fichier.
 
 ---
 
@@ -33,13 +33,13 @@ Vérification : lancer un run via `workflow_dispatch` (gh CLI ou UI) et confirme
 
 Commit : `ci: add release workflow (build installer on tag)`.
 
-## Étape B — Candidature SignPath Foundation · 🕒 soumise, en attente
+## Étape B — Candidature SignPath Foundation · ❌ refusée
 
 **👤 UTILISATEUR (bloquant)** : soumettre la candidature sur `https://signpath.org` (bouton Apply) avec : URL du repo, licence GPL-3.0, lien vers `CODE_SIGNING_POLICY.md`, description de l'app. Créer le compte SignPath avec MFA. Attendre l'acceptation (peut prendre plusieurs jours).
 
 Claude Code : préparer un bloc de texte prêt-à-coller (description courte EN de Muralis + liens) pour le formulaire, puis s'arrêter.
 
-**Fait le 2026-07-24** : compte créé, candidature soumise. Prochaine action à l'acceptation → étape D.
+**Fait le 2026-07-24** : compte créé, candidature soumise. **Refusée début août 2026** — motif : projet trop peu connu (SignPath Foundation privilégie les projets avec une base d'utilisateurs établie). Étapes D/E gelées en conséquence ; voir « Pistes de relance » en fin de fichier.
 
 ## Étape C — Pendant l'attente (optionnel, non bloquant) · ✅ faite
 
@@ -91,3 +91,12 @@ Après ≥1 release signée publiée : soumettre le manifeste préparé en C à 
 - Ne pas toucher au processus de build local (`installer/build.ps1` doit continuer de marcher hors CI).
 - Toute nouvelle chaîne visible dans l'app (si UI touchée) : passer par `Strings.resx`/`Strings.fr.resx` + `tools\gen-strings.ps1` (cf. AGENTS.md). Ce plan ne devrait pas toucher l'UI.
 - Une modif docs/CI ne déclenche **ni bump de version ni release** — seuls les tags `v*` publient.
+
+---
+
+## Pistes de relance (après le refus SignPath)
+
+1. **Re-candidater SignPath** quand le projet aura de la traction mesurable (stars, téléchargements de releases, présence winget) — leur critère implicite est une base d'utilisateurs établie. Ré-committer alors un `CODE_SIGNING_POLICY.md` (dans l'historique git, retiré avec le refus).
+2. **Certificat OV payant** (ex. Certum Open Source, ~70 €/an) : signature immédiate, mais la réputation SmartScreen reste à construire — l'OV ne donne pas de passe-droit, seulement une identité d'éditeur dans l'UAC.
+3. **En attendant : winget (étape F)** — accepte les installeurs non signés (hash + scan Defender à la PR) et `winget install` évite le prompt SmartScreen du double-clic. La release v1.2.1 publiée porte bien `Muralis-Setup-1.2.1.exe`, l'URL du manifest brouillon est valide.
+4. La réputation SmartScreen monte aussi sans signature avec les téléchargements propres, juste plus lentement — la note du README l'explique aux utilisateurs.
