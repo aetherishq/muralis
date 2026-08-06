@@ -84,8 +84,9 @@ Commit : `ci: sign release binaries via SignPath`.
 **2026-08-06** : première soumission ([microsoft/winget-pkgs#413308](https://github.com/microsoft/winget-pkgs/pull/413308))
 fermée volontairement le jour même pour renommer l'identifiant `Arkatul.Muralis` →
 `Aetherishq.Muralis` (issue #39 — permanent une fois mergé, le repo vit sous l'org).
-Manifeste 1.2.2 resoumis via `wingetcreate submit`, en attente de la validation
-pipeline + modération. Procédure par release : `tools/winget/README.md`.
+Manifeste 1.2.2 resoumis via `wingetcreate submit` → PR
+[microsoft/winget-pkgs#413344](https://github.com/microsoft/winget-pkgs/pull/413344),
+en attente de la validation pipeline + modération. Procédure par release : `tools/winget/README.md`.
 
 Après ≥1 release signée publiée : soumettre le manifeste préparé en C à `microsoft/winget-pkgs` (PR), idéalement automatiser la re-soumission à chaque release (`wingetcreate update` dans le workflow, token GitHub dédié). L'utilisateur suit/valide la PR.
 
