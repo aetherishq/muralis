@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
 PackageIdentifier: Arkatul.Muralis
-PackageVersion: 1.2.1
+PackageVersion: 1.2.2
 InstallerType: inno
 UpgradeBehavior: install
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/aetherishq/muralis/releases/download/v1.2.1/Muralis-Setup-1.2.1.exe
-    InstallerSha256: EB9F07412F3D65488D29771876705C08FEFB3FBDB562C849759C55265B9A68CE
+    InstallerUrl: https://github.com/aetherishq/muralis/releases/download/v1.2.2/Muralis-Setup-1.2.2.exe
+    InstallerSha256: 6215499A49FF46A0DE830C4A83DC5D84369F976399219E05D87EEA97DBDDDBA3
     ProductCode: "{4F0AE54E-9E6C-4A28-BB67-FAD9B25399D3}_is1"
 ManifestType: installer
 ManifestVersion: 1.10.0
