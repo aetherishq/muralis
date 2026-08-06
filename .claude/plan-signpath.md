@@ -79,7 +79,11 @@ Commit : `ci: sign release binaries via SignPath`.
 3. **👤 UTILISATEUR** : approuver la signature dans SignPath, puis tester l'installeur signé sur une machine/VM Windows propre (vérifier : éditeur affiché dans l'UAC, `signtool verify` OK), publier la Release draft.
 4. Documenter dans le README si besoin : l'avertissement SmartScreen peut persister brièvement le temps que la réputation du certificat monte, puis disparaît.
 
-## Étape F (optionnelle) — winget
+## Étape F (optionnelle) — winget · 🕒 soumise (sans signature)
+
+**2026-08-06** : manifeste 1.2.2 soumis via `wingetcreate submit` → PR
+[microsoft/winget-pkgs#413308](https://github.com/microsoft/winget-pkgs/pull/413308),
+en attente de la validation pipeline + modération. Procédure par release : `tools/winget/README.md`.
 
 Après ≥1 release signée publiée : soumettre le manifeste préparé en C à `microsoft/winget-pkgs` (PR), idéalement automatiser la re-soumission à chaque release (`wingetcreate update` dans le workflow, token GitHub dédié). L'utilisateur suit/valide la PR.
 
