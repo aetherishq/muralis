@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
-PackageIdentifier: Arkatul.Muralis
+PackageIdentifier: Aetherishq.Muralis
 PackageVersion: 1.2.2
 PackageLocale: en-US
-Publisher: Arkatul
-PublisherUrl: https://github.com/Arkatul
+Publisher: Aetherishq
+PublisherUrl: https://github.com/aetherishq
 PublisherSupportUrl: https://github.com/aetherishq/muralis/issues
 PackageName: Muralis
 PackageUrl: https://github.com/aetherishq/muralis
