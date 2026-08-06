@@ -1,6 +1,7 @@
 # Release : construit l'installeur sur tag v* (ou manuellement via workflow_dispatch
-# pour tester sans publier). Build vérifiable exigé par SignPath — la signature des
-# binaires sera insérée entre l'upload d'artefact et la Release (cf. .claude/plan-signpath.md).
+# pour tester sans publier). Binaires non signés pour l'instant (candidature SignPath
+# refusée — pistes de relance dans .claude/plan-signpath.md) ; une éventuelle étape de
+# signature s'insérerait entre l'upload d'artefact et la Release.
 name: Release
 
 on:
