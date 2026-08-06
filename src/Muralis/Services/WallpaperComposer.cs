@@ -50,6 +50,15 @@ public class WallpaperComposer
 
         var source = LoadBitmap(sourcePath);
         var rendered = Render(source, targetWidth, targetHeight, mode);
+        if (IsEmptyRender(rendered))
+        {
+            // Un seul retry immédiat : le device se rétablit parfois dans la foulée,
+            // et un écran en mode fixe n'aurait pas de tick suivant pour retenter.
+            rendered = Render(source, targetWidth, targetHeight, mode);
+            if (IsEmptyRender(rendered))
+                throw new InvalidOperationException(
+                    $"Rendu vide pour '{sourcePath}' ({targetWidth}x{targetHeight}) : RenderTargetBitmap n'a rien produit.");
+        }
         SavePng(rendered, outputPath);
         return outputPath;
     }
@@ -127,6 +136,28 @@ public class WallpaperComposer
         return rtb;
     }
 
+    /// <summary>
+    /// Détecte un rendu vide. Un rendu réussi est intégralement opaque (fond noir posé en premier
+    /// dans <see cref="Render"/>) : des échantillons entièrement transparents signifient que
+    /// <c>RenderTargetBitmap.Render</c> n'a rien rendu — échec silencieux de WPF quand le render
+    /// thread perd le device D3D (reset de driver, sortie de veille…, issue #35). Mis en cache,
+    /// un tel PNG s'affiche en noir sur le bureau, pour toujours. Le fond opaque garantit
+    /// zéro faux positif, y compris pour une image source légitimement noire.
+    /// </summary>
+    private static bool IsEmptyRender(BitmapSource bmp)
+    {
+        int w = bmp.PixelWidth, h = bmp.PixelHeight;
+        var samples = new[] { (0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1), (w / 2, h / 2) };
+        var pixel = new byte[4]; // Pbgra32 : B, G, R, A
+        foreach ((int x, int y) in samples)
+        {
+            bmp.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
+            if (pixel[3] != 0)
+                return false;
+        }
+        return true;
+    }
+
     private static void DrawScaledCentered(DrawingContext dc, BitmapSource source, int tw, int th, double scale)
     {
         double w = source.PixelWidth * scale;
@@ -154,9 +185,9 @@ public class WallpaperComposer
         long stamp = 0;
         try { stamp = File.GetLastWriteTimeUtc(sourcePath).Ticks; } catch { /* source volatile */ }
 
-        // « v2 » : invalide les caches antérieurs au décodage strict, potentiellement
-        // empoisonnés par des rendus noirs silencieux (issue #20).
-        string raw = $"v2|{sourcePath.ToLowerInvariant()}|{stamp}|{tw}x{th}|{mode}";
+        // « v3 » : invalide les caches antérieurs à la garde anti-rendu-vide, potentiellement
+        // empoisonnés par des PNG transparents (issue #35). « v2 » : décodage strict (issue #20).
+        string raw = $"v3|{sourcePath.ToLowerInvariant()}|{stamp}|{tw}x{th}|{mode}";
         byte[] hash = SHA1.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(hash);
     }
