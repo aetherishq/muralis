@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
 PackageIdentifier: Arkatul.Muralis
-PackageVersion: 1.2.1
+PackageVersion: 1.2.2
 PackageLocale: en-US
 Publisher: Arkatul
 PublisherUrl: https://github.com/Arkatul
