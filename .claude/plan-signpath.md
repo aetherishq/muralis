@@ -10,7 +10,7 @@ Contexte acté (ne pas rediscuter) :
 
 Ordre : Étape A → B → C → D. Les étapes B et D demandent des actions utilisateur (marquées **👤 UTILISATEUR**) — s'arrêter et les demander explicitement quand on y arrive.
 
-> **État au 2026-08-06 — PLAN GELÉ** : A ✅ · B ❌ candidature **refusée** (projet trop peu connu) · C ✅ · D/E gelées (sans certificat) · F (winget) **reste faisable sans signature**. Distribution non signée assumée (README, section « A note on SmartScreen »). `CODE_SIGNING_POLICY.md` retiré du repo (récupérable dans l'historique git). Pistes de relance en fin de fichier.
+> **État au 2026-08-06 — PLAN GELÉ** : A ✅ · B ❌ candidature **refusée** (projet trop peu connu) · C ✅ · D/E gelées (sans certificat) · F (winget) ✅ **publiée le 2026-08-24 sans signature**. Distribution non signée assumée (README, section « A note on SmartScreen »). `CODE_SIGNING_POLICY.md` retiré du repo (récupérable dans l'historique git). Pistes de relance en fin de fichier.
 
 ---
 
@@ -79,7 +79,7 @@ Commit : `ci: sign release binaries via SignPath`.
 3. **👤 UTILISATEUR** : approuver la signature dans SignPath, puis tester l'installeur signé sur une machine/VM Windows propre (vérifier : éditeur affiché dans l'UAC, `signtool verify` OK), publier la Release draft.
 4. Documenter dans le README si besoin : l'avertissement SmartScreen peut persister brièvement le temps que la réputation du certificat monte, puis disparaît.
 
-## Étape F (optionnelle) — winget · 🕒 soumise (sans signature)
+## Étape F (optionnelle) — winget · ✅ publiée (sans signature)
 
 **2026-08-06** : première soumission ([microsoft/winget-pkgs#413308](https://github.com/microsoft/winget-pkgs/pull/413308))
 fermée volontairement le jour même pour renommer l'identifiant `Arkatul.Muralis` →
@@ -88,7 +88,15 @@ Manifeste 1.2.2 resoumis via `wingetcreate submit` → PR
 [microsoft/winget-pkgs#413344](https://github.com/microsoft/winget-pkgs/pull/413344),
 en attente de la validation pipeline + modération. Procédure par release : `tools/winget/README.md`.
 
-Après ≥1 release signée publiée : soumettre le manifeste préparé en C à `microsoft/winget-pkgs` (PR), idéalement automatiser la re-soumission à chaque release (`wingetcreate update` dans le workflow, token GitHub dédié). L'utilisateur suit/valide la PR.
+**2026-08-24** : après 18 jours de silence en `REVIEW_REQUIRED` (validation ✅, CLA ✅,
+label `New-Package`), commentaire de relance poli posté sur la PR
+([#issuecomment-5398771412](https://github.com/microsoft/winget-pkgs/pull/413344#issuecomment-5398771412)).
+Réponse d'un modérateur le jour même (backlog d'environ 570 PR), **PR mergée**
+le 2026-08-24 (commit `5651271`) et publish pipeline OK. `winget show Aetherishq.Muralis`
+retourne bien la 1.2.2 — le paquet est **live** dans le dépôt winget communautaire.
+Leçon : relancer poliment vaut le coup, le silence était de la file d'attente, pas un refus.
+
+Prochaine étape winget : à chaque nouvelle release, `wingetcreate update Aetherishq.Muralis` (procédure : `tools/winget/README.md`) — les mises à jour d'un paquet existant passent plus vite que la création. Automatisation possible plus tard (`wingetcreate update` dans `release.yml`, token GitHub dédié). L'utilisateur suit/valide la PR.
 
 ---
 
@@ -105,5 +113,5 @@ Après ≥1 release signée publiée : soumettre le manifeste préparé en C à 
 
 1. **Re-candidater SignPath** quand le projet aura de la traction mesurable (stars, téléchargements de releases, présence winget) — leur critère implicite est une base d'utilisateurs établie. Ré-committer alors un `CODE_SIGNING_POLICY.md` (dans l'historique git, retiré avec le refus).
 2. **Certificat OV payant** (ex. Certum Open Source, ~70 €/an) : signature immédiate, mais la réputation SmartScreen reste à construire — l'OV ne donne pas de passe-droit, seulement une identité d'éditeur dans l'UAC.
-3. **En attendant : winget (étape F)** — accepte les installeurs non signés (hash + scan Defender à la PR) et `winget install` évite le prompt SmartScreen du double-clic. La release v1.2.1 publiée porte bien `Muralis-Setup-1.2.1.exe`, l'URL du manifest brouillon est valide.
+3. **winget (étape F) : fait** — `Aetherishq.Muralis` 1.2.2 est live depuis le 2026-08-24. winget accepte les installeurs non signés (hash + scan Defender à la PR) et `winget install` évite le prompt SmartScreen du double-clic. C'est aussi le canal qui fera monter le compteur de téléchargements — l'argument qui manquait à la candidature SignPath (piste 1).
 4. La réputation SmartScreen monte aussi sans signature avec les téléchargements propres, juste plus lentement — la note du README l'explique aux utilisateurs.
