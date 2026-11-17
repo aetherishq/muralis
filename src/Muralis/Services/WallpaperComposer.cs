@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,6 +22,9 @@ public class WallpaperComposer
 {
     private readonly ConfigService _config;
 
+    /// <summary>Thread STA de composition, hors UI thread (#41).</summary>
+    private readonly StaWorker _worker = new("Muralis composer");
+
     public WallpaperComposer(ConfigService config)
     {
         _config = config;
@@ -31,6 +35,10 @@ public class WallpaperComposer
     /// <paramref name="targetHeight"/> pixels selon <paramref name="mode"/>. Retourne le chemin du PNG
     /// (mis en cache : une même combinaison source/taille/mode n'est pas recomposée).
     /// </summary>
+    public Task<string> ComposeAsync(string sourcePath, int targetWidth, int targetHeight, DesktopWallpaperPosition mode) =>
+        _worker.Run(() => Compose(sourcePath, targetWidth, targetHeight, mode));
+
+    /// <summary>Version synchrone de <see cref="ComposeAsync"/>, sur le thread appelant (STA requis).</summary>
     public string Compose(string sourcePath, int targetWidth, int targetHeight, DesktopWallpaperPosition mode)
     {
         Directory.CreateDirectory(_config.ComposedDirectory);
@@ -48,6 +56,7 @@ public class WallpaperComposer
             return outputPath;
         }
 
+        var stopwatch = Stopwatch.StartNew();
         var source = LoadBitmap(sourcePath);
         var rendered = Render(source, targetWidth, targetHeight, mode);
         if (IsEmptyRender(rendered))
@@ -60,6 +69,7 @@ public class WallpaperComposer
                     $"Empty render for '{sourcePath}' ({targetWidth}x{targetHeight}): RenderTargetBitmap produced nothing.");
         }
         SavePng(rendered, outputPath);
+        Log.Info($"Composed {targetWidth}x{targetHeight} ({mode}) in {stopwatch.ElapsedMilliseconds} ms: '{Path.GetFileName(sourcePath)}'");
         return outputPath;
     }
 

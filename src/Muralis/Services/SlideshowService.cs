@@ -25,10 +25,19 @@ public class SlideshowService
     private readonly List<SlideshowTarget> _targets = [];
     private CancellationTokenSource _cts = new();
 
-    public SlideshowService(WallpaperService wallpaperService, WebWallpaperFetcher fetcher)
+    /// <summary>Vrai quand une pose doit attendre (jeu plein écran au premier plan, #41).</summary>
+    private readonly Func<bool> _shouldDefer;
+
+    /// <summary>Re-vérification des poses en attente : active seulement tant qu'il y en a.</summary>
+    private DispatcherTimer? _deferTimer;
+
+    internal static readonly TimeSpan DeferRecheckInterval = TimeSpan.FromSeconds(30);
+
+    public SlideshowService(WallpaperService wallpaperService, WebWallpaperFetcher fetcher, Func<bool>? shouldDefer = null)
     {
         _wallpaperService = wallpaperService;
         _fetcher = fetcher;
+        _shouldDefer = shouldDefer ?? (() => false);
     }
 
     /// <summary>
@@ -59,7 +68,7 @@ public class SlideshowService
             var unified = config.UnifiedConfig;
             // Pas d'écran destinataire unique : l'adaptation Wallhaven par écran est omise.
             AddTargetSafely(config, unified, monitor: null,
-                path => _wallpaperService.ApplyAllMonitors(path, unified.DisplayMode, monitors));
+                path => _wallpaperService.ApplyAllMonitorsAsync(path, unified.DisplayMode, monitors));
             return;
         }
 
@@ -70,7 +79,7 @@ public class SlideshowService
             {
                 var target = monitor;
                 AddTargetSafely(config, screen, monitor,
-                    path => _wallpaperService.ApplyMonitor(target, path, screen.DisplayMode));
+                    path => _wallpaperService.ApplyMonitorAsync(target, path, screen.DisplayMode));
             }
         }
     }
@@ -80,7 +89,7 @@ public class SlideshowService
     /// les autres cibles ni faire lever <see cref="Restart"/> — appelé au démarrage, hors de
     /// tout try : une exception y tuait le process à chaque lancement (issue #44).
     /// </summary>
-    private void AddTargetSafely(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Action<string> apply)
+    private void AddTargetSafely(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Func<string, Task> apply)
     {
         try
         {
@@ -119,20 +128,23 @@ public class SlideshowService
             .Select(t => (t.Config.DeviceId, t.LastImage!))
             .ToList();
 
-    /// <summary>Passe immédiatement à l'image suivante sur toutes les cibles (menu tray).</summary>
+    /// <summary>Passe immédiatement à l'image suivante sur toutes les cibles (menu tray) —
+    /// demande explicite : jamais différée.</summary>
     public void AdvanceAll()
     {
         foreach (var target in _targets)
         {
             // Redémarrer le timer pour que le prochain changement auto reparte d'un intervalle complet.
             target.Timer.Stop();
-            Advance(target);
+            target.Pending = false;
+            Advance(target, force: true);
             target.Timer.Start();
         }
     }
 
     public void Stop()
     {
+        _deferTimer?.Stop();
         _cts.Cancel();
         foreach (var target in _targets)
             StopTarget(target);
@@ -168,7 +180,7 @@ public class SlideshowService
     /// <summary>Cadence interne de re-vérification des sources quotidiennes (non configurable).</summary>
     private static readonly TimeSpan DailyRefreshInterval = TimeSpan.FromHours(1);
 
-    private void TryAddTarget(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Action<string> apply)
+    private void TryAddTarget(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Func<string, Task> apply)
     {
         WallpaperSourceConfig? webSource;
         TimeSpan interval;
@@ -215,21 +227,83 @@ public class SlideshowService
         target.Timer.Start();
     }
 
-    private void Advance(SlideshowTarget target)
+    private void Advance(SlideshowTarget target, bool force = false)
     {
-        if (target.WebSource is not null)
+        if (!force && ShouldDefer())
         {
-            _ = AdvanceWebAsync(target, _cts.Token);
+            Defer(target);
             return;
         }
+
+        if (target.WebSource is not null)
+            _ = AdvanceWebAsync(target, _cts.Token);
+        else
+            _ = AdvanceLocalAsync(target);
+    }
+
+    private bool ShouldDefer()
+    {
+        try
+        {
+            return _shouldDefer();
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Full-screen detection failed: wallpaper change not deferred", ex);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Pose reportée : une seule en attente par cible (pas d'empilement si plusieurs ticks
+    /// tombent pendant le jeu), re-vérifiée toutes les ~30 s, posée dès la sortie du jeu (#41).
+    /// </summary>
+    private void Defer(SlideshowTarget target)
+    {
+        target.Pending = true;
+        if (_deferTimer is { IsEnabled: true })
+            return;
+
+        Log.Info("Wallpaper change deferred: a full-screen application is in the foreground");
+        if (_deferTimer is null)
+        {
+            _deferTimer = new DispatcherTimer { Interval = DeferRecheckInterval };
+            _deferTimer.Tick += (_, _) => ResumeDeferred();
+        }
+        _deferTimer.Start();
+    }
+
+    /// <summary>Re-vérification : si plus rien n'empêche la pose, les cibles en attente
+    /// avancent. Interne pour les tests (le DispatcherTimer n'y tourne pas).</summary>
+    internal void ResumeDeferred()
+    {
+        if (ShouldDefer())
+            return;
+
+        _deferTimer?.Stop();
+        var pending = _targets.Where(t => t.Pending).ToList();
+        if (pending.Count > 0)
+            Log.Info($"Full-screen application left: applying {pending.Count} deferred wallpaper change(s)");
+        foreach (var target in pending)
+        {
+            target.Pending = false;
+            Advance(target, force: true);
+        }
+    }
+
+    private async Task AdvanceLocalAsync(SlideshowTarget target)
+    {
+        if (target.ApplyInProgress)
+            return; // Composition précédente pas finie (intervalle très court) : on saute.
 
         string? next = NextLocalImage(target);
         if (next is null)
             return;
 
+        target.ApplyInProgress = true;
         try
         {
-            target.Apply(next);
+            await target.Apply(next);
         }
         catch (Exception ex)
         {
@@ -237,7 +311,12 @@ public class SlideshowService
             Log.Warn($"Slideshow: could not apply '{next}' (screen '{target.Config.DeviceId}')", ex);
             return;
         }
-        RaiseWallpaperApplied();
+        finally
+        {
+            target.ApplyInProgress = false;
+        }
+        if (!target.Stopped)
+            RaiseWallpaperApplied();
     }
 
     /// <summary>
@@ -300,7 +379,7 @@ public class SlideshowService
 
             try
             {
-                target.Apply(path);
+                await target.Apply(path);
             }
             catch (Exception ex)
             {
@@ -394,10 +473,10 @@ public class SlideshowService
             target.Queue.Enqueue(file);
     }
 
-    private sealed class SlideshowTarget(ScreenConfig config, Action<string> apply, WallpaperSourceConfig? webSource, MonitorInfo? monitor)
+    private sealed class SlideshowTarget(ScreenConfig config, Func<string, Task> apply, WallpaperSourceConfig? webSource, MonitorInfo? monitor)
     {
         public ScreenConfig Config { get; } = config;
-        public Action<string> Apply { get; } = apply;
+        public Func<string, Task> Apply { get; } = apply;
         public WallpaperSourceConfig? WebSource { get; } = webSource;
 
         /// <summary>Écran destinataire (null en mode unifié) — transmis au fetcher pour
@@ -407,6 +486,10 @@ public class SlideshowService
         public Queue<string> Queue { get; } = new();
         public string? LastImage { get; set; }
         public bool FetchInProgress { get; set; }
+        public bool ApplyInProgress { get; set; }
+
+        /// <summary>Un changement attend la sortie d'une application plein écran (#41).</summary>
+        public bool Pending { get; set; }
 
         /// <summary>Cible retirée (Stop, RefreshSource) : un fetch encore en vol l'ignore.</summary>
         public bool Stopped { get; set; }

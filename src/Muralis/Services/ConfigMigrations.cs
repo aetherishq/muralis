@@ -124,6 +124,10 @@ public static class ConfigMigrations
             }
         }
 
+        // V3 : report des changements de fond pendant un jeu plein écran, activé pour tous (#41).
+        if (config.Version < 3)
+            config.PauseDuringFullscreen = true;
+
         if (config.Version < AppConfig.CurrentVersion)
         {
             config.Version = AppConfig.CurrentVersion;

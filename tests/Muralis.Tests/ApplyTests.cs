@@ -36,7 +36,7 @@ public sealed class ApplyTests : IDisposable
     }
 
     [Fact]
-    public void Apply_OneFailingScreen_DoesNotBlockTheOthers()
+    public async Task Apply_OneFailingScreen_DoesNotBlockTheOthers()
     {
         var monitors = new[] { Monitor("A", 0), Monitor("B", 1920), Monitor("C", 3840) };
         var config = new AppConfig
@@ -45,19 +45,19 @@ public sealed class ApplyTests : IDisposable
         };
         var service = new FakeWallpaperService(_dir) { FailOn = "A" };
 
-        var report = service.Apply(config, monitors);
+        var report = await service.ApplyAsync(config, monitors);
 
         Assert.Equal(new ApplyReport(Applied: 2, Failed: 1), report);
         Assert.Equal(["B", "C"], service.Applied.Select(a => a.DeviceId).Order());
     }
 
     [Fact]
-    public void Apply_NeverThrows_InUnifiedMode()
+    public async Task Apply_NeverThrows_InUnifiedMode()
     {
         var config = new AppConfig { Unified = true, UnifiedConfig = new ScreenConfig { SourcePath = Image("all.png") } };
         var service = new FakeWallpaperService(_dir) { FailOn = "*" };
 
-        Assert.Equal(new ApplyReport(Applied: 0, Failed: 1), service.Apply(config, [Monitor("A", 0)]));
+        Assert.Equal(new ApplyReport(Applied: 0, Failed: 1), await service.ApplyAsync(config, [Monitor("A", 0)]));
     }
 
     [Fact]
@@ -132,21 +132,23 @@ public sealed class ApplyTests : IDisposable
     }
 
     /// <summary>Enregistre les poses au lieu d'appeler IDesktopWallpaper.</summary>
-    private sealed class FakeWallpaperService(string dir) : WallpaperService(new WallpaperComposer(new ConfigService(dir)))
+    internal sealed class FakeWallpaperService(string dir) : WallpaperService(new WallpaperComposer(new ConfigService(dir)))
     {
         public string? FailOn { get; init; }
 
         public ConcurrentQueue<(string DeviceId, string Path)> Applied { get; } = new();
 
-        public override void ApplyMonitor(MonitorInfo monitor, string imagePath, DesktopWallpaperPosition displayMode)
+        public override async Task ApplyMonitorAsync(MonitorInfo monitor, string imagePath, DesktopWallpaperPosition displayMode)
         {
+            await Task.Yield(); // asynchrone comme la vraie composition
             if (FailOn == monitor.DeviceId || FailOn == "*")
                 throw new NotSupportedException("No imaging component suitable to complete this operation.");
             Applied.Enqueue((monitor.DeviceId, imagePath));
         }
 
-        public override void ApplyAllMonitors(string imagePath, DesktopWallpaperPosition displayMode, IReadOnlyList<MonitorInfo> monitors)
+        public override async Task ApplyAllMonitorsAsync(string imagePath, DesktopWallpaperPosition displayMode, IReadOnlyList<MonitorInfo> monitors)
         {
+            await Task.Yield();
             if (FailOn == "*")
                 throw new NotSupportedException("No imaging component suitable to complete this operation.");
             Applied.Enqueue((string.Empty, imagePath));

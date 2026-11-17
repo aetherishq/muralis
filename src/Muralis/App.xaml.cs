@@ -78,7 +78,9 @@ public partial class App : Application
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Muralis/1.0");
         var fetcher = new WebWallpaperFetcher(http, configService);
 
-        _slideshowService = new SlideshowService(_wallpaperService, fetcher);
+        // Réglage lu à chaque pose prévue : pris en compte à chaud (#41).
+        _slideshowService = new SlideshowService(_wallpaperService, fetcher,
+            shouldDefer: () => configService.Load().PauseDuringFullscreen && FullscreenDetector.IsFullscreenAppInForeground());
         _imageSaveService = new ImageSaveService(configService, _slideshowService, fetcher);
         var cacheMaintenance = new CacheMaintenanceService(configService, _wallpaperService);
         _themeService = new ThemeService();
@@ -117,7 +119,7 @@ public partial class App : Application
         var runtimeConfig = configService.Load();
         var matched = ScreenMatcher.CompleteForRuntime(runtimeConfig, startupMonitors, _ => null).ToHashSet();
         if (matched.Count > 0)
-            _wallpaperService.Apply(runtimeConfig, startupMonitors.Where(m => matched.Contains(m.DeviceId)).ToList());
+            _ = _wallpaperService.ApplyAsync(runtimeConfig, startupMonitors.Where(m => matched.Contains(m.DeviceId)).ToList());
         _slideshowService.Restart(runtimeConfig, startupMonitors);
 
         // Dock/undock, écran ajouté/retiré, résolution, sortie de veille (#42). Événements
@@ -329,7 +331,7 @@ public partial class App : Application
             _displayDebounce.Tick += (_, _) =>
             {
                 _displayDebounce.Stop();
-                OnDisplayLayoutMaybeChanged();
+                _ = OnDisplayLayoutMaybeChangedAsync();
             };
         }
         _displayDebounce.Stop();
@@ -340,7 +342,7 @@ public partial class App : Application
     /// Ré-énumère les écrans ; si la disposition a changé, re-pose les fonds fixes (composés
     /// à la nouvelle résolution) et relance les diaporamas sur la nouvelle liste.
     /// </summary>
-    private void OnDisplayLayoutMaybeChanged()
+    private async Task OnDisplayLayoutMaybeChangedAsync()
     {
         try
         {
@@ -359,7 +361,7 @@ public partial class App : Application
             var config = _configService!.Load();
             ScreenMatcher.CompleteForRuntime(config, monitors,
                 m => _startupDeviceIds.Contains(m.DeviceId) ? null : ScreenMatcher.WindowsDefaultWallpaper(m));
-            var report = _wallpaperService!.Apply(config, monitors);
+            var report = await _wallpaperService!.ApplyAsync(config, monitors);
             _slideshowService!.Restart(config, monitors);
             if (report.Failed > 0)
                 Log.Warn($"Display change: {report.Failed} wallpaper(s) could not be applied");

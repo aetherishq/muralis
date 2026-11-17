@@ -8,7 +8,7 @@ public class AppConfig
 {
     /// <summary>Version de schéma la plus récente connue de ce build. Une config d'une
     /// version supérieure (downgrade) n'est jamais réécrite (cf. <c>ConfigService</c>).</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     /// <summary>Version du schéma de config, pour migrations futures.</summary>
     public int Version { get; set; } = 1;
@@ -32,6 +32,10 @@ public class AppConfig
 
     /// <summary>Sources web ajoutées par l'utilisateur (presets du catalogue ou custom).</summary>
     public List<WallpaperSourceConfig> Sources { get; set; } = [];
+
+    /// <summary>Vrai : les changements de fond attendent qu'aucune application plein écran
+    /// (jeu, vidéo, présentation) ne soit au premier plan (#41). Activé par défaut.</summary>
+    public bool PauseDuringFullscreen { get; set; } = true;
 
     /// <summary>Dossier où « Enregistrer le fond actuel » copie les images
     /// (null/vide = <c>Images\Muralis</c> par défaut, cf. <c>ImageSaveService</c>).</summary>

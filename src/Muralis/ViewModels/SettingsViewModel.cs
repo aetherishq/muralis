@@ -207,7 +207,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
             .ToList();
 
     [RelayCommand]
-    private void Apply()
+    private async Task Apply()
     {
         // Repart de la config persistée pour ne pas écraser les réglages hors page
         // wallpaper (thème notamment).
@@ -236,7 +236,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         // Écrans isolés (Apply ne lève pas) et diaporamas TOUJOURS relancés : une image
         // fixe illisible sur un écran ne laisse plus tourner l'ancien diaporama d'un autre
         // jusqu'au prochain démarrage (#47).
-        var report = _wallpaperService.Apply(config, _monitors);
+        var report = await _wallpaperService.ApplyAsync(config, _monitors);
         _slideshowService.Restart(config, _monitors);
         RefreshCurrentWallpapers();
 

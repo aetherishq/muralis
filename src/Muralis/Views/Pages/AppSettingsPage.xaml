@@ -30,6 +30,44 @@
             <ui:ToggleSwitch IsChecked="{Binding AppSettings.StartWithWindows}" />
         </ui:CardControl>
 
+        <!-- Report des changements de fond pendant un jeu plein écran (#41). -->
+        <ui:CardControl Margin="0,0,0,4">
+            <ui:CardControl.Icon>
+                <ui:SymbolIcon Symbol="Games24" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{DynamicResource BodyTextBlockStyle}"
+                            Text="{x:Static res:Strings.AppSettings_PauseFullscreen}" />
+                        <ui:Button
+                            Margin="4,0,0,0"
+                            Padding="4"
+                            VerticalAlignment="Center"
+                            Appearance="Transparent"
+                            AutomationProperties.Name="{x:Static res:Strings.AppSettings_PauseFullscreenHelp}"
+                            ToolTip="{x:Static res:Strings.AppSettings_PauseFullscreenHelp}"
+                            Click="OnPauseFullscreenHelpClick">
+                            <ui:SymbolIcon Symbol="Info16" />
+                        </ui:Button>
+                        <ui:Flyout x:Name="PauseFullscreenHelpFlyout" Placement="Bottom">
+                            <TextBlock
+                                MaxWidth="360"
+                                TextWrapping="Wrap"
+                                Text="{x:Static res:Strings.AppSettings_PauseFullscreenHelp}" />
+                        </ui:Flyout>
+                    </StackPanel>
+                    <TextBlock
+                        Style="{DynamicResource CaptionTextBlockStyle}"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{x:Static res:Strings.AppSettings_PauseFullscreenDesc}" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding AppSettings.PauseDuringFullscreen}" />
+        </ui:CardControl>
+
         <ui:CardControl Margin="0,0,0,4">
             <ui:CardControl.Icon>
                 <ui:FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE775;" />

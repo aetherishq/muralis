@@ -135,6 +135,9 @@
   <data name="Settings_Title"><value>Paramètres</value></data>
   <data name="Settings_StartupTitle"><value>Lancer au démarrage de Windows</value></data>
   <data name="Settings_StartupDesc"><value>Démarre dans la zone de notification, sans ouvrir de fenêtre</value></data>
+  <data name="AppSettings_PauseFullscreen"><value>Suspendre les changements de fond pendant les jeux et applications plein écran</value></data>
+  <data name="AppSettings_PauseFullscreenDesc"><value>Le fond change dès que vous quittez l'application.</value></data>
+  <data name="AppSettings_PauseFullscreenHelp"><value>Depuis une mise à jour de Windows, appliquer un fond d'écran peut provoquer une brève saccade. Muralis attend donc qu'aucune application plein écran (jeu, vidéo, présentation) ne soit au premier plan avant de changer le fond.</value></data>
   <data name="Settings_LanguageTitle"><value>Langue</value></data>
   <data name="Settings_LanguageDesc"><value>Suivre Windows, ou forcer le français ou l'anglais</value></data>
   <data name="Settings_ThemeTitle"><value>Thème</value></data>

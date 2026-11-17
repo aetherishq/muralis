@@ -131,7 +131,7 @@ public sealed class ConfigServiceTests : IDisposable
     {
         // Downgrade : une version future a ajouté une valeur d'enum que ce build ignore.
         string future = """
-            { "Version": 3, "Theme": "HighContrast", "Screens": [] }
+            { "Version": 99, "Theme": "HighContrast", "Screens": [] }
             """;
         File.WriteAllText(ConfigPath, future);
 
