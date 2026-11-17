@@ -53,6 +53,7 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
         selectedTheme = ThemeOptions.FirstOrDefault(o => o.Value == config.Theme) ?? ThemeOptions[0];
         selectedLanguage = LanguageOptions.FirstOrDefault(o => o.Code == config.Language) ?? LanguageOptions[0];
         startWithWindows = ReadStartupState();
+        pauseDuringFullscreen = config.PauseDuringFullscreen;
         wallhavenApiKey = LoadApiKey(config, WallhavenPresetId);
         saveDirectory = ResolveSaveDirectory(config);
         _initialized = true;
@@ -82,6 +83,21 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool startWithWindows;
+
+    /// <summary>Report des changements de fond pendant un jeu plein écran (#41) : lu à
+    /// chaque pose, donc effectif sans relancer les diaporamas.</summary>
+    [ObservableProperty]
+    private bool pauseDuringFullscreen;
+
+    partial void OnPauseDuringFullscreenChanged(bool value)
+    {
+        if (!_initialized)
+            return;
+
+        var config = _configService.Load();
+        config.PauseDuringFullscreen = value;
+        _configService.Save(config);
+    }
 
     /// <summary>Clé API Wallhaven (partagée par toutes les instances Wallhaven).
     /// Persistée chiffrée DPAPI dans <see cref="AppConfig.ApiKeys"/>, sauvée peu après la

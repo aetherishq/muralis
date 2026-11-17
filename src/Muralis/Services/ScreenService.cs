@@ -11,7 +11,8 @@ public class ScreenService
 {
     public IReadOnlyList<MonitorInfo> GetMonitors()
     {
-        var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
+        using var session = new DesktopWallpaperSession();
+        var wallpaper = session.Api;
         var monitors = new List<MonitorInfo>();
 
         uint count = wallpaper.GetMonitorDevicePathCount();

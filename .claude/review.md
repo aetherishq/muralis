@@ -23,7 +23,7 @@ Tableau tenu à jour à chaque PR. ✅ = corrigé et mergé, ⏳ = issue ouverte
 | m2 — Miniatures décodées sur l'UI thread | Mineur | #49 | ✅ PR #64 |
 | m3 — `GetMonitors()` évalué avant le throttle | Mineur | #49 | ✅ PR #64 |
 | m4 — Exception d'abonné maquillée en échec de source | Mineur | #46 | ✅ PR #57 (v1.2.4) |
-| m5 — Interop COM (instances, `SetPosition` systématique) | Mineur | #41 | 🔗 commentaire sur #41 |
+| m5 — Interop COM (instances, `SetPosition` systématique) | Mineur | #41 | ✅ PR #67 |
 | m6 — Source supprimée toujours interrogée | Mineur | #47 | ✅ PR #60 (v1.2.4) — seules les cibles de la source sont relancées |
 | m7 — Taille de téléchargement non bornée | Mineur | #45 | ✅ PR #59 (v1.2.4) |
 | m8 — Config relue sur disque à chaque requête | Mineur | #43 | ✅ PR #55 (v1.2.3) |

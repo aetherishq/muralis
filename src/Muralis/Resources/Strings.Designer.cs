@@ -12,6 +12,9 @@ public static class Strings
     public static ResourceManager ResourceManager { get; } = new("Muralis.Resources.Strings", typeof(Strings).Assembly);
 
     private static string Get(string name) => ResourceManager.GetString(name) ?? name;
+    public static string AppSettings_PauseFullscreen => Get(nameof(AppSettings_PauseFullscreen));
+    public static string AppSettings_PauseFullscreenDesc => Get(nameof(AppSettings_PauseFullscreenDesc));
+    public static string AppSettings_PauseFullscreenHelp => Get(nameof(AppSettings_PauseFullscreenHelp));
     public static string Common_Add => Get(nameof(Common_Add));
     public static string Common_Apply => Get(nameof(Common_Apply));
     public static string Common_Browse => Get(nameof(Common_Browse));

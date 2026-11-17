@@ -135,6 +135,9 @@
   <data name="Settings_Title"><value>Settings</value></data>
   <data name="Settings_StartupTitle"><value>Start with Windows</value></data>
   <data name="Settings_StartupDesc"><value>Starts in the notification area, without opening a window</value></data>
+  <data name="AppSettings_PauseFullscreen"><value>Pause wallpaper changes during games and full-screen apps</value></data>
+  <data name="AppSettings_PauseFullscreenDesc"><value>The wallpaper changes as soon as you leave the app.</value></data>
+  <data name="AppSettings_PauseFullscreenHelp"><value>Since a recent Windows update, applying a wallpaper can cause a brief stutter. Muralis waits until no full-screen app (game, video, presentation) is in the foreground before changing it.</value></data>
   <data name="Settings_LanguageTitle"><value>Language</value></data>
   <data name="Settings_LanguageDesc"><value>Follow Windows, or force French or English</value></data>
   <data name="Settings_ThemeTitle"><value>Theme</value></data>

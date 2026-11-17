@@ -102,4 +102,22 @@ public class ConfigMigrationsTests
         Assert.Equal(AppConfig.CurrentVersion, config.Version);
         Assert.False(ConfigMigrations.Apply(config));
     }
+
+    [Fact]
+    public void V3_EnablesFullscreenPause_ForExistingConfigs()
+    {
+        var config = new AppConfig { Version = 2, PauseDuringFullscreen = false };
+
+        Assert.True(ConfigMigrations.Apply(config));
+        Assert.True(config.PauseDuringFullscreen);
+    }
+
+    [Fact]
+    public void V3_KeepsTheUserChoice_OnceMigrated()
+    {
+        var config = new AppConfig { Version = 3, PauseDuringFullscreen = false };
+
+        ConfigMigrations.Apply(config);
+        Assert.False(config.PauseDuringFullscreen);
+    }
 }

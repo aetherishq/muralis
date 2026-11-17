@@ -12,6 +12,10 @@ public partial class AppSettingsPage : Page
         InitializeComponent();
     }
 
+    /// <summary>Bouton info : l'explication complète (le survol n'en montre qu'une infobulle).</summary>
+    private void OnPauseFullscreenHelpClick(object sender, RoutedEventArgs e) =>
+        PauseFullscreenHelpFlyout.IsOpen = !PauseFullscreenHelpFlyout.IsOpen;
+
     /// <summary>L'état « démarrage Windows » peut changer hors de l'app : relire le registre
     /// à chaque affichage de la page.</summary>
     private void OnLoaded(object sender, RoutedEventArgs e)
