@@ -229,7 +229,7 @@
                                     Width="120"
                                     Margin="8,0,0,0"
                                     ItemsSource="{Binding IntervalUnits}"
-                                    SelectedItem="{Binding IntervalUnit}" />
+                                    SelectedItem="{Binding SelectedIntervalUnit}" />
                             </StackPanel>
                         </ui:CardControl>
 

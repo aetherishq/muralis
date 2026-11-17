@@ -34,7 +34,7 @@ Tableau tenu à jour à chaque PR. ✅ = corrigé et mergé, ⏳ = issue ouverte
 | s1, s3, s4, s6 — CTS, User-Agent, entropie DPAPI, `PooledConnectionLifetime` | Suggestion | #52 | ⏳ |
 | s2 — `_urlByPath` en mémoire sans borne | Suggestion | #48 | ✅ PR #58 (v1.2.4) — borné ; persistance jugée inutile (l'URL est ré-enregistrée au premier fetch après redémarrage) |
 | s5 — Fire-and-forget et exceptions non observées | Suggestion | #46 | ✅ PR #57 (v1.2.4) |
-| Testabilité (a) — projet de tests | — | #51 | 🟡 amorcé : `tests/Muralis.Tests` + CI (PR #53), tests config/migrations/intervalle |
+| Testabilité (a) — projet de tests | — | #51 | ✅ PR #68 — 8 cibles couvertes (114 tests), CI |
 | Testabilité (b) — extraction `Muralis.Core` | — | #52 | ⏳ |
 
 ---
