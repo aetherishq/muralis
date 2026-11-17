@@ -53,22 +53,50 @@ public class ImageSaveService(ConfigService configService, SlideshowService slid
         return (SaveOutcome.Saved, fileName);
     }
 
-    /// <summary>Nom d'origine tiré de l'URL source si connue (session courante), sinon
-    /// horodatage — le cache local, lui, est nommé par hash d'URL.</summary>
-    private string BuildFileName(string cachePath)
-    {
-        string leaf = fetcher.SourceUrlFor(cachePath) is { } url
-            ? Path.GetFileName(url.AbsolutePath)
-            : string.Empty;
+    private string BuildFileName(string cachePath) =>
+        BuildFileName(fetcher.SourceUrlFor(cachePath), cachePath, DateTime.Now);
 
-        if (!string.IsNullOrWhiteSpace(leaf))
+    /// <summary>
+    /// Nom d'enregistrement : nom d'origine tiré de l'URL source quand il désigne une image
+    /// (<c>wallhaven-94x38z.jpg</c>), sinon paramètre <c>id=</c> de la query s'il en désigne
+    /// une (Bing : <c>/th?id=OHR.Nom_FR-FR123_1920x1080.jpg&amp;…</c> — le chemin seul donnait
+    /// « th », sans extension, et bloquait tout enregistrement suivant, issue #48), sinon
+    /// horodatage. Jamais d'extension hors <see cref="ImageFiles.Extensions"/>
+    /// (<c>get.php</c> → horodatage).
+    /// </summary>
+    internal static string BuildFileName(Uri? sourceUrl, string cachePath, DateTime now)
+    {
+        if (sourceUrl is not null)
         {
-            var invalid = Path.GetInvalidFileNameChars();
-            leaf = string.Concat(leaf.Select(c => invalid.Contains(c) ? '_' : c));
-            if (Path.GetFileNameWithoutExtension(leaf).Length > 0)
-                return leaf;
+            if (AsImageFileName(Path.GetFileName(sourceUrl.AbsolutePath)) is { } fromPath)
+                return fromPath;
+            if (AsImageFileName(QueryValue(sourceUrl, "id")) is { } fromId)
+                return fromId;
         }
 
-        return $"Muralis-{DateTime.Now:yyyyMMdd-HHmmss}{Path.GetExtension(cachePath)}";
+        return $"Muralis-{now:yyyyMMdd-HHmmss}{Path.GetExtension(cachePath)}";
+    }
+
+    /// <summary>Le nom assaini s'il a une base non vide et une extension d'image, sinon null.</summary>
+    private static string? AsImageFileName(string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return null;
+
+        var invalid = Path.GetInvalidFileNameChars();
+        string name = string.Concat(candidate.Select(c => invalid.Contains(c) ? '_' : c));
+        bool isImage = ImageFiles.Extensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+        return isImage && Path.GetFileNameWithoutExtension(name).Length > 0 ? name : null;
+    }
+
+    private static string? QueryValue(Uri url, string key)
+    {
+        foreach (string pair in url.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int eq = pair.IndexOf('=');
+            if (eq > 0 && string.Equals(pair[..eq], key, StringComparison.OrdinalIgnoreCase))
+                return Uri.UnescapeDataString(pair[(eq + 1)..]);
+        }
+        return null;
     }
 }
