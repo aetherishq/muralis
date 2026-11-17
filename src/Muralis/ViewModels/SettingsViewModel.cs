@@ -22,6 +22,10 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     private IReadOnlyList<MonitorInfo> _monitors = [];
 
+    /// <summary>Device paths dont la config a été reprise par un écran branché sur un autre
+    /// port (même identifiant matériel) : remplacés, pas conservés, au prochain « Appliquer ».</summary>
+    private readonly HashSet<string> _adoptedDeviceIds = [];
+
     public SettingsViewModel(
         ConfigService configService,
         ScreenService screenService,
@@ -138,6 +142,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     public void Load()
     {
         Screens.Clear();
+        _adoptedDeviceIds.Clear();
 
         _monitors = _screenService.GetMonitors();
         var config = _configService.Load();
@@ -162,7 +167,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         int index = 1;
         foreach (var monitor in _monitors)
         {
-            var screenConfig = config.FindScreen(monitor.DeviceId) ?? new ScreenConfig { DeviceId = monitor.DeviceId };
+            // Écran vu par un autre port de la dock : sa config est reprise (et sera
+            // enregistrée sous le nouveau device path au prochain « Appliquer », #42).
+            var screenConfig = config.FindScreen(monitor.DeviceId)
+                ?? Adopt(ScreenMatcher.FindByHardware(config, monitor, _monitors), monitor)
+                ?? new ScreenConfig { DeviceId = monitor.DeviceId };
             var screen = new ScreenSettingsViewModel(index++, monitor, screenConfig, Sources.EditorRandomOptions, Sources.EditorDailyOptions);
             screen.SetSelectorGeometry(
                 (monitor.Bounds.Left - originX) * scale,
@@ -177,6 +186,26 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         UnifiedScreen = new ScreenSettingsViewModel(config.UnifiedConfig, Sources.EditorRandomOptions, Sources.EditorDailyOptions);
     }
 
+    private ScreenConfig? Adopt(ScreenConfig? match, MonitorInfo monitor)
+    {
+        if (match is null)
+            return null;
+        _adoptedDeviceIds.Add(match.DeviceId);
+        return ScreenMatcher.CloneFor(match, monitor.DeviceId);
+    }
+
+    /// <summary>Configs des écrans branchés (éditées ici) + celles des écrans débranchés,
+    /// conservées : appliquer une fois dédocké n'efface plus les réglages des écrans de la
+    /// dock (#42).</summary>
+    internal static List<ScreenConfig> MergeScreens(
+        IEnumerable<ScreenConfig> edited,
+        IEnumerable<ScreenConfig> persisted,
+        IReadOnlySet<string> connected,
+        IReadOnlySet<string> adopted) =>
+        edited
+            .Concat(persisted.Where(s => !connected.Contains(s.DeviceId) && !adopted.Contains(s.DeviceId)))
+            .ToList();
+
     [RelayCommand]
     private void Apply()
     {
@@ -185,7 +214,11 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         var config = _configService.Load();
         config.Unified = UnifiedMode;
         config.UnifiedConfig = UnifiedScreen?.ToConfig() ?? new ScreenConfig();
-        config.Screens = Screens.Select(s => s.ToConfig()).ToList();
+        config.Screens = MergeScreens(
+            Screens.Select(s => s.ToConfig()),
+            config.Screens,
+            _monitors.Select(m => m.DeviceId).ToHashSet(),
+            _adoptedDeviceIds);
 
         try
         {
