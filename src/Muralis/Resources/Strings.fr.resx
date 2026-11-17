@@ -115,6 +115,7 @@
 
   <!-- Statuts barre Appliquer -->
   <data name="Status_FetchFailedReasonFormat"><value>Source « {0} » : impossible de récupérer une image ({1}) — fond actuel conservé.</value></data>
+  <data name="Status_AppliedPartialFormat"><value>Appliqué, mais {0} image(s) n'ont pas pu être posée(s) — diaporamas relancés. Le détail est dans le journal (%LocalAppData%\Muralis\logs).</value></data>
   <data name="Status_ApplyFailed"><value>Impossible d'appliquer le fond d'écran. Le détail est dans le journal (%LocalAppData%\Muralis\logs).</value></data>
   <data name="FetchFailure_Timeout"><value>délai dépassé</value></data>
   <data name="FetchFailure_Network"><value>erreur réseau</value></data>

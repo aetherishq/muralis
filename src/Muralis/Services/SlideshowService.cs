@@ -135,8 +135,34 @@ public class SlideshowService
     {
         _cts.Cancel();
         foreach (var target in _targets)
-            target.Timer.Stop();
+            StopTarget(target);
         _targets.Clear();
+    }
+
+    /// <summary>
+    /// Une source web a été modifiée ou retirée (page Sources) : seules les cibles qui
+    /// l'utilisent sont arrêtées puis recréées depuis <paramref name="config"/> — retirée,
+    /// elle n'est plus interrogée ; modifiée (filtres Wallhaven, URL…), ses nouveaux réglages
+    /// s'appliquent tout de suite. Les autres écrans ne changent pas (issue #47).
+    /// </summary>
+    public void RefreshSource(AppConfig config, string sourceId)
+    {
+        var affected = _targets.Where(t => t.WebSource?.Id == sourceId).ToList();
+        foreach (var target in affected)
+        {
+            StopTarget(target);
+            _targets.Remove(target);
+        }
+
+        // Recréées seulement si la source existe encore et reste valide (TryAddTarget).
+        foreach (var target in affected)
+            AddTargetSafely(config, target.Config, target.Monitor, target.Apply);
+    }
+
+    private static void StopTarget(SlideshowTarget target)
+    {
+        target.Timer.Stop();
+        target.Stopped = true; // un téléchargement en vol ne posera pas son image
     }
 
     /// <summary>Cadence interne de re-vérification des sources quotidiennes (non configurable).</summary>
@@ -257,7 +283,7 @@ public class SlideshowService
         {
             // Pas de ConfigureAwait(false) : Apply (imaging WPF + COM) doit reprendre sur l'UI thread.
             var result = await _fetcher.FetchAsync(target.WebSource!, target.Monitor, ct);
-            if (ct.IsCancellationRequested)
+            if (ct.IsCancellationRequested || target.Stopped)
                 return;
 
             if (result.Path is not { } path)
@@ -381,5 +407,8 @@ public class SlideshowService
         public Queue<string> Queue { get; } = new();
         public string? LastImage { get; set; }
         public bool FetchInProgress { get; set; }
+
+        /// <summary>Cible retirée (Stop, RefreshSource) : un fetch encore en vol l'ignore.</summary>
+        public bool Stopped { get; set; }
     }
 }

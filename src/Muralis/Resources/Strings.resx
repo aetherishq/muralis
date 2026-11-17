@@ -115,6 +115,7 @@
 
   <!-- Statuts barre Appliquer -->
   <data name="Status_FetchFailedReasonFormat"><value>Source “{0}”: could not fetch an image ({1}) — current wallpaper kept.</value></data>
+  <data name="Status_AppliedPartialFormat"><value>Applied, but {0} image(s) could not be set — slideshows restarted. Details are in the log (%LocalAppData%\Muralis\logs).</value></data>
   <data name="Status_ApplyFailed"><value>Could not apply the wallpaper. Details are in the log (%LocalAppData%\Muralis\logs).</value></data>
   <data name="FetchFailure_Timeout"><value>timed out</value></data>
   <data name="FetchFailure_Network"><value>network error</value></data>
