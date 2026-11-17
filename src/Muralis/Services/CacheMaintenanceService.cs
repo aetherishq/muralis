@@ -64,13 +64,15 @@ public class CacheMaintenanceService
     }
 
     /// <summary>Passe de plafond, appelée après chaque pose de fond (throttlée).</summary>
-    public void PruneComposedIfDue(IReadOnlyList<MonitorInfo> monitors)
+    /// <remarks>Les moniteurs sont demandés seulement si la passe est due : leur
+    /// énumération est un appel COM, inutile à chaque pose (#49).</remarks>
+    public void PruneComposedIfDue(Func<IReadOnlyList<MonitorInfo>> monitors)
     {
         if (DateTime.UtcNow - _lastPruneUtc < PruneThrottle)
             return;
         _lastPruneUtc = DateTime.UtcNow;
 
-        PruneComposed(AppliedWallpapers(monitors));
+        PruneComposed(AppliedWallpapers(monitors()));
     }
 
     /// <summary>Ramène le dossier des composés sous le plafond : plus anciens d'abord,

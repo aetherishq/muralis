@@ -19,9 +19,9 @@ Tableau tenu à jour à chaque PR. ✅ = corrigé et mergé, ⏳ = issue ouverte
 | M4 — « Appliquer » interrompu à la première erreur | Majeur | #47 | ✅ PR #60 (v1.2.4) |
 | M5 — « Enregistrer le fond actuel » cassé pour Bing | Majeur | #48 | ✅ PR #58 (v1.2.4) |
 | M6 — Ni journalisation ni gestionnaire global | Majeur | #46 | ✅ PR #57 (v1.2.4) |
-| m1 — Fuite d'abonnements au changement de langue | Mineur | #49 | ⏳ |
-| m2 — Miniatures décodées sur l'UI thread | Mineur | #49 | ⏳ |
-| m3 — `GetMonitors()` évalué avant le throttle | Mineur | #49 | ⏳ |
+| m1 — Fuite d'abonnements au changement de langue | Mineur | #49 | ✅ PR #64 |
+| m2 — Miniatures décodées sur l'UI thread | Mineur | #49 | ✅ PR #64 |
+| m3 — `GetMonitors()` évalué avant le throttle | Mineur | #49 | ✅ PR #64 |
 | m4 — Exception d'abonné maquillée en échec de source | Mineur | #46 | ✅ PR #57 (v1.2.4) |
 | m5 — Interop COM (instances, `SetPosition` systématique) | Mineur | #41 | 🔗 commentaire sur #41 |
 | m6 — Source supprimée toujours interrogée | Mineur | #47 | ✅ PR #60 (v1.2.4) — seules les cibles de la source sont relancées |

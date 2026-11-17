@@ -12,7 +12,7 @@ namespace Muralis.ViewModels;
 /// un même fond pour tous les écrans (<see cref="UnifiedScreen"/>), ou une config indépendante par
 /// écran (<see cref="Screens"/>).
 /// </summary>
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigService _configService;
     private readonly ScreenService _screenService;
@@ -42,16 +42,51 @@ public partial class SettingsViewModel : ObservableObject
 
         // Miniatures du sélecteur resynchronisées à chaque pose réelle d'un diaporama
         // (la première image d'une source web arrive après le Restart, en asynchrone).
-        _slideshowService.WallpaperApplied += RefreshCurrentWallpapers;
+        _slideshowService.WallpaperApplied += OnWallpaperApplied;
 
         // Feedback visible quand une source web ne fournit pas d'image (URL/chemin JSON
         // erronés, API en panne…) — sinon l'échec serait silencieux.
-        _slideshowService.WebFetchFailed += (name, reason) =>
-            StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, reason);
+        _slideshowService.WebFetchFailed += OnWebFetchFailed;
 
         // Source modifiée/retirée : seuls ses diaporamas suivent, tout de suite (#47).
-        // Même durée de vie que ce ViewModel (reconstruits ensemble) : pas de fuite.
-        Sources.SourceChanged += id => _slideshowService.RefreshSource(_configService.Load(), id);
+        Sources.SourceChanged += OnSourceChanged;
+    }
+
+    /// <summary>Les services survivent à ce ViewModel (reconstruit à chaque bascule de
+    /// langue) : sans désabonnement, chaque ancien VM continuerait de recharger ses
+    /// miniatures à chaque pose (#49).</summary>
+    public void Dispose()
+    {
+        _slideshowService.WallpaperApplied -= OnWallpaperApplied;
+        _slideshowService.WebFetchFailed -= OnWebFetchFailed;
+        Sources.SourceChanged -= OnSourceChanged;
+        AppSettings.Dispose();
+    }
+
+    private void OnWebFetchFailed(string name, string reason) =>
+        StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, reason);
+
+    private void OnSourceChanged(string id) => _slideshowService.RefreshSource(_configService.Load(), id);
+
+    /// <summary>Vrai quand une pose a eu lieu fenêtre masquée : l'aperçu sera rafraîchi
+    /// au prochain affichage de la page plutôt qu'à chaque pose (#49).</summary>
+    private bool _previewStale;
+
+    private void OnWallpaperApplied()
+    {
+        if (IsWallpapersPageActive)
+            RefreshCurrentWallpapers();
+        else
+            _previewStale = true;
+    }
+
+    partial void OnIsWallpapersPageActiveChanged(bool value)
+    {
+        if (value && _previewStale)
+        {
+            _previewStale = false;
+            RefreshCurrentWallpapers();
+        }
     }
 
     /// <summary>Paramètres d'application (page dédiée).</summary>
