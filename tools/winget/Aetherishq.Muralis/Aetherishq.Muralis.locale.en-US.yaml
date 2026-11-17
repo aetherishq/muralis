@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
 PackageIdentifier: Aetherishq.Muralis
-PackageVersion: 1.2.2
+PackageVersion: 1.2.3
 PackageLocale: en-US
 Publisher: Aetherishq
 PublisherUrl: https://github.com/aetherishq
