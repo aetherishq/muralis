@@ -25,6 +25,16 @@ public class ScreenConfig
 
     public TimeSpan SlideshowInterval { get; set; } = TimeSpan.FromMinutes(30);
 
+    /// <summary>Intervalle minimal d'un diaporama (une composition d'image a un coût).</summary>
+    public static readonly TimeSpan MinSlideshowInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Intervalle maximal d'un diaporama. <c>DispatcherTimer</c> refuse au-delà de
+    /// <c>Int32.MaxValue</c> ms (~24,8 jours) — une valeur plus grande persistée faisait
+    /// planter l'app à chaque démarrage (issue #44). 24 jours ronds, sous la limite.
+    /// </summary>
+    public static readonly TimeSpan MaxSlideshowInterval = TimeSpan.FromDays(24);
+
     /// <summary>Diaporama : vrai = ordre aléatoire, faux = ordre alphabétique du dossier.</summary>
     public bool Shuffle { get; set; } = true;
 
