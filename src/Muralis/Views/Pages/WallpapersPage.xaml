@@ -221,7 +221,7 @@
                                 <ui:NumberBox
                                     Width="110"
                                     Minimum="1"
-                                    Maximum="86400"
+                                    Maximum="{Binding IntervalMaximum}"
                                     ClearButtonEnabled="False"
                                     SpinButtonPlacementMode="Compact"
                                     Value="{Binding IntervalValue}" />

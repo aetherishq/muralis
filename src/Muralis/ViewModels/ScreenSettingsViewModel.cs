@@ -227,9 +227,6 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     public static string UnitSeconds => Strings.Screen_UnitSeconds;
 
-    /// <summary>Intervalle minimal du diaporama (une composition d'image a un coût).</summary>
-    private static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(5);
-
     public IReadOnlyList<string> IntervalUnits { get; } = [UnitMinutes, UnitSeconds];
 
     [ObservableProperty]
@@ -238,9 +235,19 @@ public partial class ScreenSettingsViewModel : ObservableObject
     [ObservableProperty]
     private string intervalUnit = UnitMinutes;
 
+    /// <summary>Borne haute de la saisie, exprimée dans l'unité courante
+    /// (<see cref="ScreenConfig.MaxSlideshowInterval"/>, issue #44).</summary>
+    public double IntervalMaximum => IntervalUnit == UnitSeconds
+        ? ScreenConfig.MaxSlideshowInterval.TotalSeconds
+        : ScreenConfig.MaxSlideshowInterval.TotalMinutes;
+
     /// <summary>À la bascule d'unité, convertit la valeur affichée (30 min ↔ 1800 s).</summary>
     partial void OnIntervalUnitChanged(string? oldValue, string newValue)
     {
+        // Borne mise à jour AVANT la valeur convertie : la NumberBox ne doit pas la
+        // rabattre sur l'ancien maximum (minutes → secondes multiplie par 60).
+        OnPropertyChanged(nameof(IntervalMaximum));
+
         if (oldValue is null || oldValue == newValue)
             return;
 
@@ -292,11 +299,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// <summary>Projette l'état courant vers un <see cref="ScreenConfig"/> persistable.</summary>
     public ScreenConfig ToConfig()
     {
-        var interval = IntervalUnit == UnitSeconds
-            ? TimeSpan.FromSeconds(IntervalValue)
-            : TimeSpan.FromMinutes(IntervalValue);
-        if (interval < MinInterval)
-            interval = MinInterval;
+        var interval = ToInterval(IntervalValue, inSeconds: IntervalUnit == UnitSeconds);
 
         return new ScreenConfig
         {
@@ -311,6 +314,22 @@ public partial class ScreenSettingsViewModel : ObservableObject
             Shuffle = Shuffle,
             DisplayMode = SelectedMode.Value,
         };
+    }
+
+    /// <summary>
+    /// Valeur saisie → intervalle persistable, borné à
+    /// [<see cref="ScreenConfig.MinSlideshowInterval"/>, <see cref="ScreenConfig.MaxSlideshowInterval"/>].
+    /// Le calcul reste en double jusqu'au bornage : <c>TimeSpan.FromMinutes</c> lèverait sur
+    /// une valeur énorme ou NaN (issue #44).
+    /// </summary>
+    internal static TimeSpan ToInterval(double value, bool inSeconds)
+    {
+        double seconds = double.IsNaN(value) ? 0 : value * (inSeconds ? 1 : 60);
+        seconds = Math.Clamp(
+            seconds,
+            ScreenConfig.MinSlideshowInterval.TotalSeconds,
+            ScreenConfig.MaxSlideshowInterval.TotalSeconds);
+        return TimeSpan.FromSeconds(seconds);
     }
 
     private void LoadFrom(ScreenConfig config)
@@ -329,6 +348,8 @@ public partial class ScreenSettingsViewModel : ObservableObject
             ImagePath = string.IsNullOrEmpty(config.SourcePath) ? null : config.SourcePath;
         }
         var interval = config.SlideshowInterval > TimeSpan.Zero ? config.SlideshowInterval : TimeSpan.FromMinutes(30);
+        if (interval > ScreenConfig.MaxSlideshowInterval)
+            interval = ScreenConfig.MaxSlideshowInterval; // config antérieure au plafond (#44)
         // Affiche en minutes quand l'intervalle tombe rond, en secondes sinon.
         bool wholeMinutes = interval >= TimeSpan.FromMinutes(1) && interval.TotalSeconds % 60 == 0;
         IntervalUnit = wholeMinutes ? UnitMinutes : UnitSeconds;

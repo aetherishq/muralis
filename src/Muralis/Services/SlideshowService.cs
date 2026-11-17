@@ -57,7 +57,7 @@ public class SlideshowService
         {
             var unified = config.UnifiedConfig;
             // Pas d'écran destinataire unique : l'adaptation Wallhaven par écran est omise.
-            TryAddTarget(config, unified, monitor: null,
+            AddTargetSafely(config, unified, monitor: null,
                 path => _wallpaperService.ApplyAllMonitors(path, unified.DisplayMode, monitors));
             return;
         }
@@ -68,10 +68,40 @@ public class SlideshowService
             if (screen is not null)
             {
                 var target = monitor;
-                TryAddTarget(config, screen, monitor,
+                AddTargetSafely(config, screen, monitor,
                     path => _wallpaperService.ApplyMonitor(target, path, screen.DisplayMode));
             }
         }
+    }
+
+    /// <summary>
+    /// Une cible invalide (config éditée à la main, valeur hors bornes…) ne doit ni bloquer
+    /// les autres cibles ni faire lever <see cref="Restart"/> — appelé au démarrage, hors de
+    /// tout try : une exception y tuait le process à chaque lancement (issue #44).
+    /// </summary>
+    private void AddTargetSafely(AppConfig config, ScreenConfig screen, MonitorInfo? monitor, Action<string> apply)
+    {
+        try
+        {
+            TryAddTarget(config, screen, monitor, apply);
+        }
+        catch (Exception)
+        {
+            // Cible ignorée. Journalisation à brancher avec #46.
+        }
+    }
+
+    /// <summary>
+    /// Intervalle effectif d'un diaporama : plancher de sécurité (composition locale 5 s,
+    /// requêtes web 60 s) et plafond <see cref="ScreenConfig.MaxSlideshowInterval"/>
+    /// (limite de <see cref="DispatcherTimer"/>, issue #44).
+    /// </summary>
+    internal static TimeSpan EffectiveInterval(TimeSpan requested, bool isWeb)
+    {
+        var min = isWeb ? TimeSpan.FromMinutes(1) : ScreenConfig.MinSlideshowInterval;
+        if (requested < min)
+            return min;
+        return requested > ScreenConfig.MaxSlideshowInterval ? ScreenConfig.MaxSlideshowInterval : requested;
     }
 
     /// <summary>Chemin (cache local) de l'image web actuellement posée sur un écran —
@@ -131,9 +161,7 @@ public class SlideshowService
                     return; // Source supprimée, incomplète ou non aléatoire : cible ignorée.
             }
 
-            // Plancher de sécurité : composition locale à 5 s min, requêtes web à 60 s min.
-            var minInterval = webSource is null ? TimeSpan.FromSeconds(5) : TimeSpan.FromMinutes(1);
-            interval = screen.SlideshowInterval < minInterval ? minInterval : screen.SlideshowInterval;
+            interval = EffectiveInterval(screen.SlideshowInterval, isWeb: webSource is not null);
         }
         else
         {
