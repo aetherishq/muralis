@@ -30,7 +30,7 @@ Tableau tenu à jour à chaque PR. ✅ = corrigé et mergé, ⏳ = issue ouverte
 | m9 — Clé Wallhaven sauvée à chaque frappe | Mineur | #43 | ✅ PR #55 (v1.2.3) |
 | m10 — Messages techniques en français dans l'UI | Mineur | #46 | ✅ PR #57 (v1.2.4) |
 | m11 — DESIGN.md : `Maximum` de la NumberBox | Mineur | #44 | ✅ PR #53 (v1.2.3) |
-| m11 — DESIGN.md : CheckBox « Adapter à l'écran », `FontSize` en dur | Mineur | #50 | ⏳ |
+| m11 — DESIGN.md : CheckBox « Adapter à l'écran », `FontSize` en dur | Mineur | #50 | ✅ PR #65 |
 | s1, s3, s4, s6 — CTS, User-Agent, entropie DPAPI, `PooledConnectionLifetime` | Suggestion | #52 | ⏳ |
 | s2 — `_urlByPath` en mémoire sans borne | Suggestion | #48 | ✅ PR #58 (v1.2.4) — borné ; persistance jugée inutile (l'URL est ré-enregistrée au premier fetch après redémarrage) |
 | s5 — Fire-and-forget et exceptions non observées | Suggestion | #46 | ✅ PR #57 (v1.2.4) |
