@@ -105,7 +105,7 @@
                                     IsClosable="False"
                                     IsOpen="{Binding Wallhaven.PurityNsfw, Mode=OneWay}"
                                     Message="{x:Static res:Strings.Wallhaven_NsfwKeyWarning}" />
-                                <CheckBox
+                                <ui:ToggleSwitch
                                     Content="{x:Static res:Strings.Wallhaven_AutoFit}"
                                     IsChecked="{Binding Wallhaven.AutoFitScreen}" />
                                 <TextBlock
