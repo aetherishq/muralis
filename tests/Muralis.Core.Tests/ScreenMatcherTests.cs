@@ -94,10 +94,11 @@ public class ScreenMatcherTests
     [Fact]
     public void DefaultWallpaper_PicksTheClosestVariant()
     {
-        string[] variants = [@"x\img0_1920x1200.jpg", @"x\img0_3840x2160.jpg", @"x\img0_1024x768.jpg", @"x\other.jpg"];
+        string P(string name) => System.IO.Path.Combine("x", name);
+        string[] variants = [P("img0_1920x1200.jpg"), P("img0_3840x2160.jpg"), P("img0_1024x768.jpg"), P("other.jpg")];
 
-        Assert.Equal(@"x\img0_3840x2160.jpg", ScreenMatcher.PickDefaultWallpaper(3840, 2160, variants));
-        Assert.Equal(@"x\img0_1920x1200.jpg", ScreenMatcher.PickDefaultWallpaper(1920, 1080, variants));
+        Assert.Equal(P("img0_3840x2160.jpg"), ScreenMatcher.PickDefaultWallpaper(3840, 2160, variants));
+        Assert.Equal(P("img0_1920x1200.jpg"), ScreenMatcher.PickDefaultWallpaper(1920, 1080, variants));
         Assert.Null(ScreenMatcher.PickDefaultWallpaper(1920, 1080, []));
     }
 

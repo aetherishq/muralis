@@ -350,11 +350,7 @@ public class WebWallpaperFetcher
             : null;
     }
 
-    private static string Sanitize(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c));
-    }
+    private static string Sanitize(string name) => FileNames.Sanitize(name);
 
     private static string GuessExtension(Uri imageUrl)
     {
