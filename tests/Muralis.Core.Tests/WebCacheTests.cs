@@ -3,11 +3,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Muralis.Models;
-using Muralis.Resources;
 using Muralis.Services;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #45 : téléchargements concurrents de la même URL, cache empoisonné par
 /// un fichier partiel ou non-image, taille non bornée.</summary>
@@ -33,7 +32,7 @@ public sealed class WebCacheTests : IDisposable
     };
 
     private WebWallpaperFetcher Fetcher(FakeServer server) =>
-        new(new HttpClient(server) { Timeout = TimeSpan.FromSeconds(10) }, new ConfigService(_dir));
+        new(new HttpClient(server) { Timeout = TimeSpan.FromSeconds(10) }, new ConfigService(_dir), Fakes.Secrets);
 
     private string CacheDir => Path.Combine(_dir, "webcache", "daily");
 
@@ -50,7 +49,7 @@ public sealed class WebCacheTests : IDisposable
             fetcher.FetchAsync(Source(), monitor: null, CancellationToken.None),
             fetcher.FetchAsync(Source(), monitor: null, CancellationToken.None));
 
-        Assert.All(results, r => Assert.Null(r.FailureReason));
+        Assert.All(results, r => Assert.Null(r.Failure));
         Assert.Equal(results[0].Path, results[1].Path);
         Assert.Equal(1, server.ImageRequests);
         Assert.Equal(Png, File.ReadAllBytes(results[0].Path!));
@@ -66,7 +65,7 @@ public sealed class WebCacheTests : IDisposable
         var result = await Fetcher(server).FetchAsync(Source(), monitor: null, CancellationToken.None);
 
         Assert.Null(result.Path);
-        Assert.Equal(Strings.FetchFailure_InvalidImage, result.FailureReason);
+        Assert.Equal(FetchFailure.InvalidImage, result.Failure);
         Assert.Empty(CacheFiles());
     }
 
@@ -118,7 +117,7 @@ public sealed class WebCacheTests : IDisposable
 
         var result = await Fetcher(server).FetchAsync(Source(), monitor: null, CancellationToken.None);
 
-        Assert.Equal(Strings.FetchFailure_InvalidImage, result.FailureReason);
+        Assert.Equal(FetchFailure.InvalidImage, result.Failure);
         Assert.Empty(CacheFiles());
     }
 

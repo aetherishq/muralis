@@ -1,9 +1,7 @@
 using Muralis.Models;
 using Muralis.Services;
-using Muralis.Services.Interop;
-using Muralis.ViewModels;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #42 : écrans branchés/débranchés pendant que l'app tourne.</summary>
 public class ScreenMatcherTests
@@ -13,7 +11,7 @@ public class ScreenMatcherTests
     private static string Path(string hardware, string uid) => $@"\?\DISPLAY#{hardware}#5&2b975683&0&UID{uid}#{Guid}";
 
     private static MonitorInfo Monitor(string id, int width = 1920, int height = 1080) =>
-        new(id, new RECT { Left = 0, Top = 0, Right = width, Bottom = height });
+        new(id, new PixelRect { Left = 0, Top = 0, Right = width, Bottom = height });
 
     private static ScreenConfig Slideshow(string id) =>
         new() { DeviceId = id, Mode = WallpaperMode.Slideshow, SourceType = "LocalFolder", SourcePath = @"C:\Pics", Shuffle = false };
@@ -103,20 +101,4 @@ public class ScreenMatcherTests
         Assert.Null(ScreenMatcher.PickDefaultWallpaper(1920, 1080, []));
     }
 
-    [Fact]
-    public void Apply_KeepsDisconnectedScreens_ButReplacesAdoptedOnes()
-    {
-        var docked = Slideshow("docked");
-        var oldPort = Slideshow("old-port");
-        var laptop = new ScreenConfig { DeviceId = "laptop" };
-        var newPort = Slideshow("new-port");
-
-        var merged = SettingsViewModel.MergeScreens(
-            edited: [laptop, newPort],
-            persisted: [docked, oldPort, new ScreenConfig { DeviceId = "laptop" }],
-            connected: new HashSet<string> { "laptop", "new-port" },
-            adopted: new HashSet<string> { "old-port" });
-
-        Assert.Equal(["laptop", "new-port", "docked"], merged.Select(s => s.DeviceId));
-    }
 }

@@ -1,5 +1,4 @@
 using Muralis.Models;
-using Muralis.Resources;
 
 namespace Muralis.Services.Sources;
 
@@ -12,8 +11,6 @@ namespace Muralis.Services.Sources;
 /// <param name="NoteKey">Clé resx de l'aide courte affichée dans l'UI.</param>
 public sealed record SourcePreset(string PresetId, string Name, string NoteKey)
 {
-    /// <summary>Aide localisée, résolue à l'affichage (suit les changements de langue).</summary>
-    public string Note => Strings.ResourceManager.GetString(NoteKey) ?? string.Empty;
 
     public required string RequestUrl { get; init; }
     public required string ImageUrlJsonPath { get; init; }
@@ -48,7 +45,7 @@ public static class SourcePresets
 {
     public static readonly IReadOnlyList<SourcePreset> All =
     [
-        new("bing", "Bing", nameof(Strings.Preset_BingNote))
+        new("bing", "Bing", "Preset_BingNote")
         {
             RequestUrl = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=fr-FR",
             ImageUrlJsonPath = "images[0].url",
@@ -56,7 +53,7 @@ public static class SourcePresets
         },
         // L'URL réelle de recherche est construite à chaque requête depuis les options du
         // formulaire (WallhavenUrlBuilder) : RequestUrl ne sert qu'à l'affichage du header.
-        new("wallhaven", "Wallhaven", nameof(Strings.Preset_WallhavenNote))
+        new("wallhaven", "Wallhaven", "Preset_WallhavenNote")
         {
             RequestUrl = WallhavenUrlBuilder.SearchBaseUrl,
             ImageUrlJsonPath = "data[0].path",

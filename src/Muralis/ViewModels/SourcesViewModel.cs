@@ -80,7 +80,10 @@ public partial class SourcesViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(PresetNote), nameof(ShowPresetNote))]
     private SourcePreset? selectedPreset;
 
-    public string PresetNote => SelectedPreset?.Note ?? string.Empty;
+    /// <summary>Aide localisée du preset, résolue à l'affichage (suit la langue).</summary>
+    public string PresetNote => SelectedPreset is { } preset
+        ? Strings.ResourceManager.GetString(preset.NoteKey) ?? string.Empty
+        : string.Empty;
 
     public bool ShowPresetNote => SelectedPreset is not null;
 

@@ -2,7 +2,7 @@ using Muralis.Models;
 using Muralis.Services;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Migrations de config (filet de sécurité pour #43 : elles tournent à chaque
 /// démarrage et leur résultat est sauvé).</summary>
@@ -35,7 +35,7 @@ public class ConfigMigrationsTests
     {
         var config = LegacyV1();
 
-        Assert.True(ConfigMigrations.Apply(config));
+        Assert.True(ConfigMigrations.Apply(config, Fakes.Secrets));
         Assert.Equal(AppConfig.CurrentVersion, config.Version);
 
         var bing = config.Sources[0];
@@ -58,19 +58,19 @@ public class ConfigMigrationsTests
     public void LegacyWallhavenKey_MovesToEncryptedStore()
     {
         var config = LegacyV1();
-        ConfigMigrations.Apply(config);
+        ConfigMigrations.Apply(config, Fakes.Secrets);
 
         var wallhaven = config.Sources[1];
         Assert.Equal(string.Empty, wallhaven.ApiKey);
         Assert.Equal("X-API-Key", wallhaven.ApiKeyHeader);
-        Assert.Equal("secret-key", ApiKeyProtector.Unprotect(config.ApiKeys["wallhaven"]));
+        Assert.Equal("secret-key", Fakes.Secrets.Unprotect(config.ApiKeys["wallhaven"]));
     }
 
     [Fact]
     public void LegacyWallhavenUrl_BecomesTypedOptions()
     {
         var config = LegacyV1();
-        ConfigMigrations.Apply(config);
+        ConfigMigrations.Apply(config, Fakes.Secrets);
 
         var options = config.Sources[1].Wallhaven!;
         Assert.Equal(WallhavenUrlBuilder.SearchBaseUrl, config.Sources[1].RequestUrl);
@@ -88,9 +88,9 @@ public class ConfigMigrationsTests
     public void Apply_IsIdempotent()
     {
         var config = LegacyV1();
-        ConfigMigrations.Apply(config);
+        ConfigMigrations.Apply(config, Fakes.Secrets);
 
-        Assert.False(ConfigMigrations.Apply(config));
+        Assert.False(ConfigMigrations.Apply(config, Fakes.Secrets));
     }
 
     [Fact]
@@ -98,9 +98,9 @@ public class ConfigMigrationsTests
     {
         var config = new AppConfig();
 
-        Assert.True(ConfigMigrations.Apply(config));
+        Assert.True(ConfigMigrations.Apply(config, Fakes.Secrets));
         Assert.Equal(AppConfig.CurrentVersion, config.Version);
-        Assert.False(ConfigMigrations.Apply(config));
+        Assert.False(ConfigMigrations.Apply(config, Fakes.Secrets));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class ConfigMigrationsTests
     {
         var config = new AppConfig { Version = 2, PauseDuringFullscreen = false };
 
-        Assert.True(ConfigMigrations.Apply(config));
+        Assert.True(ConfigMigrations.Apply(config, Fakes.Secrets));
         Assert.True(config.PauseDuringFullscreen);
     }
 
@@ -117,7 +117,7 @@ public class ConfigMigrationsTests
     {
         var config = new AppConfig { Version = 3, PauseDuringFullscreen = false };
 
-        ConfigMigrations.Apply(config);
+        ConfigMigrations.Apply(config, Fakes.Secrets);
         Assert.False(config.PauseDuringFullscreen);
     }
 }

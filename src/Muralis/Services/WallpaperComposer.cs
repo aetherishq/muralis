@@ -18,7 +18,7 @@ namespace Muralis.Services;
 /// que l'on assigne ensuite avec une position globale neutre (Fill → rendu 1:1 car l'image est déjà à la
 /// bonne taille). Le mode Span est traité en amont par <see cref="WallpaperService"/>.
 /// </summary>
-public class WallpaperComposer
+public class WallpaperComposer : IImageComposer
 {
     private readonly ConfigService _config;
 
@@ -81,10 +81,18 @@ public class WallpaperComposer
         // cache pour toujours (issue #20). Ici tout échec lève : le diaporama garde le fond
         // courant et retente au tick suivant. OnLoad décode intégralement puis libère le fichier.
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
-        BitmapSource frame = decoder.Frames[0];
-        frame.Freeze();
-        return frame;
+        try
+        {
+            var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+            BitmapSource frame = decoder.Frames[0];
+            frame.Freeze();
+            return frame;
+        }
+        catch (Exception ex) when (ex is NotSupportedException or FileFormatException or EndOfStreamException or ArgumentException)
+        {
+            // Contrat d'IImageComposer : image indécodable = InvalidDataException.
+            throw new InvalidDataException($"Undecodable image '{path}'.", ex);
+        }
     }
 
     private static RenderTargetBitmap Render(BitmapSource source, int tw, int th, DesktopWallpaperPosition mode)

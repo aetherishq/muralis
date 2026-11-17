@@ -29,7 +29,8 @@ public partial class App : Application
     private SlideshowService? _slideshowService;
     private ConfigService? _configService;
     private ThemeService? _themeService;
-    private ScreenService? _screenService;
+    private WindowsDesktopBackend? _desktop;
+    private DpapiSecretProtector? _secrets;
     private WallpaperService? _wallpaperService;
     private ImageSaveService? _imageSaveService;
 
@@ -68,26 +69,39 @@ public partial class App : Application
         Log.Initialize(Path.Combine(configService.DataDirectory, "logs"));
         Log.Info($"Muralis {typeof(App).Assembly.GetName().Version} starting (args: {string.Join(' ', e.Args)})");
         RegisterGlobalExceptionHandlers();
-        _screenService = new ScreenService();
+        // Implémentations Windows des abstractions de Muralis.Core (#52).
+        _desktop = new WindowsDesktopBackend();
+        var secrets = new DpapiSecretProtector();
+        _secrets = secrets;
         var composer = new WallpaperComposer(configService);
-        _wallpaperService = new WallpaperService(composer);
+        _wallpaperService = new WallpaperService(composer, _desktop);
 
         // Client HTTP partagé des sources web. User-Agent explicite : certaines API
         // (e621 notamment) rejettent les clients sans identification.
-        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Muralis/1.0");
-        var fetcher = new WebWallpaperFetcher(http, configService);
+        // Version réelle + URL du projet (review s3). Connexions renouvelées toutes les 15 min :
+        // une app qui tourne des semaines suit les changements DNS des API (review s6).
+        var http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) })
+        {
+            Timeout = TimeSpan.FromSeconds(30),
+        };
+        var version = typeof(App).Assembly.GetName().Version;
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"Muralis/{version?.ToString(3) ?? "1.0"} (+https://github.com/aetherishq/muralis)");
+        var fetcher = new WebWallpaperFetcher(http, configService, secrets);
 
-        // Réglage lu à chaque pose prévue : pris en compte à chaud (#41).
+        // Réglage lu à chaque pose prévue : pris en compte à chaud (#41). Ticks des
+        // diaporamas postés sur l'UI thread (appels COM, événements vers l'UI).
         _slideshowService = new SlideshowService(_wallpaperService, fetcher,
-            shouldDefer: () => configService.Load().PauseDuringFullscreen && FullscreenDetector.IsFullscreenAppInForeground());
+            shouldDefer: () => configService.Load().PauseDuringFullscreen && FullscreenDetector.IsFullscreenAppInForeground(),
+            TimeProvider.System,
+            new DispatcherSynchronizationContext(Dispatcher));
         _imageSaveService = new ImageSaveService(configService, _slideshowService, fetcher);
         var cacheMaintenance = new CacheMaintenanceService(configService, _wallpaperService);
         _themeService = new ThemeService();
 
         // Migrations de config (une fois, avant toute lecture par les VMs/services).
         var config = configService.Load();
-        if (ConfigMigrations.Apply(config))
+        bool migrated = ConfigMigrations.Apply(config, secrets);
+        if (secrets.UpgradeLegacyBlobs(config) | migrated)
             configService.Save(config);
 
         // Langue AVANT toute construction d'UI (les libellés sont capturés à la création).
@@ -104,10 +118,10 @@ public partial class App : Application
 
         // Entretien des caches : reliquats d'anciennes versions + plafond au démarrage,
         // puis passe de plafond throttlée après chaque pose de fond.
-        var startupMonitors = _screenService.GetMonitors();
+        var startupMonitors = _desktop.GetMonitors();
         cacheMaintenance.CleanupAtStartup(configService.Load(), startupMonitors);
         _slideshowService.WallpaperApplied += () =>
-            cacheMaintenance.PruneComposedIfDue(_screenService!.GetMonitors);
+            cacheMaintenance.PruneComposedIfDue(_desktop!.GetMonitors);
 
         BuildViewModels();
         _tray = CreateTrayIcon();
@@ -159,9 +173,9 @@ public partial class App : Application
     {
         // L'ancien graphe (bascule de langue) se désabonne des services, qui survivent (#49).
         _settingsViewModel?.Dispose();
-        var appSettings = new AppSettingsViewModel(_configService!, _themeService!, () => _settingsWindow, ApplyLanguage);
+        var appSettings = new AppSettingsViewModel(_configService!, _themeService!, _secrets!, () => _settingsWindow, ApplyLanguage);
         var sources = new SourcesViewModel(_configService!);
-        _settingsViewModel = new SettingsViewModel(_configService!, _screenService!, _wallpaperService!, _slideshowService!, _imageSaveService!, appSettings, sources);
+        _settingsViewModel = new SettingsViewModel(_configService!, _desktop!, _wallpaperService!, _slideshowService!, _imageSaveService!, appSettings, sources);
     }
 
     /// <summary>
@@ -239,7 +253,7 @@ public partial class App : Application
         var targets = _slideshowService?.CurrentWebImages() ?? [];
         saveItem.IsEnabled = targets.Count > 0;
 
-        var monitors = _screenService?.GetMonitors() ?? [];
+        var monitors = _desktop?.GetMonitors() ?? [];
         foreach (var (deviceId, _) in targets)
         {
             int index = -1;
@@ -346,7 +360,7 @@ public partial class App : Application
     {
         try
         {
-            var monitors = _screenService!.GetMonitors();
+            var monitors = _desktop!.GetMonitors();
             if (monitors.Count == 0)
             {
                 Log.Warn("Display change: no active monitor reported, ignored");

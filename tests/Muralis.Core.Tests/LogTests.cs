@@ -1,7 +1,7 @@
 using System.IO;
 using Muralis.Services;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Journal fichier (issue #46). <see cref="Log"/> est statique : ces tests ne
 /// tournent pas en parallèle des autres classes qui l'initialisent.</summary>

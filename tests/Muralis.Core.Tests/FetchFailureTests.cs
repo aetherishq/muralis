@@ -3,11 +3,10 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using Muralis.Models;
-using Muralis.Resources;
 using Muralis.Services;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #46 : un timeout HTTP était avalé comme une annulation (aucun
 /// WebFetchFailed) et tout échec était réduit à « null » sans cause.</summary>
@@ -29,7 +28,7 @@ public sealed class FetchFailureTests : IDisposable
     };
 
     private WebWallpaperFetcher Fetcher(HttpMessageHandler handler, TimeSpan timeout) =>
-        new(new HttpClient(handler) { Timeout = timeout }, new ConfigService(_dir));
+        new(new HttpClient(handler) { Timeout = timeout }, new ConfigService(_dir), Fakes.Secrets);
 
     [Fact]
     public async Task HttpTimeout_IsAFailure_NotACancellation()
@@ -39,7 +38,7 @@ public sealed class FetchFailureTests : IDisposable
         var result = await fetcher.FetchAsync(CustomSource(), monitor: null, CancellationToken.None);
 
         Assert.Null(result.Path);
-        Assert.Equal(Strings.FetchFailure_Timeout, result.FailureReason);
+        Assert.Equal(new FetchFailure(FetchFailureKind.Timeout), result.Failure);
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public sealed class FetchFailureTests : IDisposable
 
         var result = await fetcher.FetchAsync(CustomSource(), monitor: null, CancellationToken.None);
 
-        Assert.Equal(string.Format(Strings.FetchFailure_HttpFormat, 401), result.FailureReason);
+        Assert.Equal(new FetchFailure(FetchFailureKind.Http, 401), result.Failure);
     }
 
     [Fact]
@@ -69,25 +68,25 @@ public sealed class FetchFailureTests : IDisposable
 
         var result = await fetcher.FetchAsync(CustomSource(), monitor: null, CancellationToken.None);
 
-        Assert.Equal(Strings.FetchFailure_UnexpectedResponse, result.FailureReason);
+        Assert.Equal(new FetchFailure(FetchFailureKind.UnexpectedResponse), result.Failure);
     }
 
     [Theory]
     [MemberData(nameof(Failures))]
-    public void DescribeFailure_MapsExceptions(Exception exception, string expected)
+    public void DescribeFailure_MapsExceptions(Exception exception, FetchFailure expected)
     {
         Assert.Equal(expected, WebWallpaperFetcher.DescribeFailure(exception));
     }
 
-    public static TheoryData<Exception, string> Failures() => new()
+    public static TheoryData<Exception, FetchFailure> Failures() => new()
     {
-        { new TaskCanceledException("timeout", new TimeoutException()), Strings.FetchFailure_Timeout },
-        { new HttpRequestException("x", null, HttpStatusCode.TooManyRequests), string.Format(Strings.FetchFailure_HttpFormat, 429) },
-        { new HttpRequestException("dns"), Strings.FetchFailure_Network },
-        { new WebWallpaperFetcher.NoResultsException("none"), Strings.FetchFailure_NoResults },
-        { new JsonException("bad"), Strings.FetchFailure_UnexpectedResponse },
-        { new KeyNotFoundException(), Strings.FetchFailure_UnexpectedResponse },
-        { new IOException("disk"), Strings.FetchFailure_Other },
+        { new TaskCanceledException("timeout", new TimeoutException()), new FetchFailure(FetchFailureKind.Timeout) },
+        { new HttpRequestException("x", null, HttpStatusCode.TooManyRequests), new FetchFailure(FetchFailureKind.Http, 429) },
+        { new HttpRequestException("dns"), new FetchFailure(FetchFailureKind.Network) },
+        { new WebWallpaperFetcher.NoResultsException("none"), new FetchFailure(FetchFailureKind.NoResults) },
+        { new JsonException("bad"), new FetchFailure(FetchFailureKind.UnexpectedResponse) },
+        { new KeyNotFoundException(), new FetchFailure(FetchFailureKind.UnexpectedResponse) },
+        { new IOException("disk"), FetchFailure.Other },
     };
 
     private sealed class DelayHandler(TimeSpan delay) : HttpMessageHandler

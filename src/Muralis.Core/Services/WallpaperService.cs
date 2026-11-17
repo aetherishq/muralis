@@ -1,13 +1,12 @@
-using System.Diagnostics;
 using System.IO;
 using Muralis.Models;
 
 namespace Muralis.Services;
 
 /// <summary>
-/// Applique les fonds d'écran via <c>IDesktopWallpaper</c>. Les images sont pré-composées à la
-/// résolution du moniteur pour honorer un mode d'affichage indépendant par écran (voir
-/// <see cref="WallpaperComposer"/>) ; <see cref="DesktopWallpaperPosition.Span"/> est délégué
+/// Applique les fonds d'écran via le bureau de la plateforme (<see cref="IDesktopBackend"/>).
+/// Les images sont pré-composées (<see cref="IImageComposer"/>) à la résolution du moniteur
+/// pour honorer un mode d'affichage indépendant par écran ; <see cref="DesktopWallpaperPosition.Span"/> est délégué
 /// nativement à Windows. Les écrans en mode <see cref="WallpaperMode.Slideshow"/> ne sont pas
 /// traités ici : c'est <see cref="SlideshowService"/> qui rappelle
 /// <see cref="ApplyMonitorAsync"/> / <see cref="ApplyAllMonitorsAsync"/> à chaque changement d'image.
@@ -23,13 +22,15 @@ public class WallpaperService
     /// les diaporamas tombent ensemble, assez courte pour rester imperceptible.</summary>
     private static readonly TimeSpan PoseBatchWindow = TimeSpan.FromMilliseconds(1500);
 
-    private readonly WallpaperComposer _composer;
+    private readonly IImageComposer _composer;
+    private readonly IDesktopBackend _backend;
     private readonly PoseBatcher _batcher;
 
-    public WallpaperService(WallpaperComposer composer)
+    public WallpaperService(IImageComposer composer, IDesktopBackend backend, TimeSpan? poseBatchWindow = null)
     {
         _composer = composer;
-        _batcher = new PoseBatcher(ExecutePoses, PoseBatchWindow);
+        _backend = backend;
+        _batcher = new PoseBatcher(backend.ApplyPoses, poseBatchWindow ?? PoseBatchWindow);
     }
 
     /// <summary>
@@ -85,8 +86,7 @@ public class WallpaperService
 
     /// <summary>
     /// Pose une image sur un moniteur donné, pré-composée à sa taille pixel (position globale
-    /// neutre : l'image étant déjà au bon format, Fill la rend 1:1). Virtuelle : substituée
-    /// dans les tests (aucun appel COM réel).
+    /// neutre : l'image étant déjà au bon format, Fill la rend 1:1).
     /// </summary>
     public virtual async Task ApplyMonitorAsync(MonitorInfo monitor, string imagePath, DesktopWallpaperPosition displayMode)
     {
@@ -116,44 +116,6 @@ public class WallpaperService
             _batcher.Enqueue(new PoseRequest(c.Monitor.DeviceId, c.Path, DesktopWallpaperPosition.Fill))));
     }
 
-    /// <summary>Exécute un lot de poses d'une traite, dans une seule session COM. Chaque pose
-    /// est isolée ; la position globale n'est changée que si elle diffère (review m5).</summary>
-    private static void ExecutePoses(IReadOnlyList<PoseRequest> batch)
-    {
-        var positionTime = new Stopwatch();
-        var setTime = new Stopwatch();
-        int failed = 0;
-
-        using (var session = new DesktopWallpaperSession())
-        {
-            foreach (var request in batch)
-            {
-                try
-                {
-                    positionTime.Start();
-                    session.EnsurePosition(request.Position);
-                    positionTime.Stop();
-
-                    setTime.Start();
-                    session.Api.SetWallpaper(request.DeviceId, request.Path);
-                    setTime.Stop();
-
-                    request.Succeed();
-                }
-                catch (Exception ex)
-                {
-                    positionTime.Stop();
-                    setTime.Stop();
-                    failed++;
-                    request.Fail(ex);
-                }
-            }
-        }
-
-        Log.Info($"Wallpaper pose: {batch.Count} image(s){(failed > 0 ? $", {failed} failed" : "")}, " +
-            $"SetPosition {positionTime.ElapsedMilliseconds} ms, SetWallpaper {setTime.ElapsedMilliseconds} ms");
-    }
-
     /// <summary>
     /// Chemin du fond actuellement appliqué sur un moniteur (lecture seule, pour l'aperçu du
     /// sélecteur d'écrans). Null si Windows ne peut pas le fournir.
@@ -162,9 +124,7 @@ public class WallpaperService
     {
         try
         {
-            using var session = new DesktopWallpaperSession();
-            string path = session.Api.GetWallpaper(deviceId);
-            return string.IsNullOrEmpty(path) ? null : path;
+            return _backend.GetWallpaper(deviceId) is { Length: > 0 } path ? path : null;
         }
         catch (Exception)
         {

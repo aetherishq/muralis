@@ -1,5 +1,4 @@
-# CI : build + tests unitaires sur chaque PR et chaque push sur main (issue #51).
-# Windows obligatoire : l'app et ses tests ciblent net10.0-windows (WPF).
+# CI : build + tests unitaires sur chaque PR et chaque push sur main (issues #51, #52).
 name: CI
 
 on:
@@ -8,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # Toute la solution : l'app et ses tests ciblent net10.0-windows (WPF).
   test:
     runs-on: windows-latest
     steps:
@@ -19,3 +19,16 @@ jobs:
 
       - name: Test
         run: dotnet test Muralis.slnx --configuration Release
+
+  # Le cœur doit rester multiplateforme : construit et testé sous Linux (#52).
+  core-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Test Muralis.Core
+        run: dotnet test tests/Muralis.Core.Tests/Muralis.Core.Tests.csproj --configuration Release

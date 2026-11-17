@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Muralis.Models;
 using Muralis.Resources;
 using Muralis.Services;
+using Muralis.Services.Sources;
 
 namespace Muralis.ViewModels;
 
@@ -15,7 +16,7 @@ namespace Muralis.ViewModels;
 public partial class SettingsViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigService _configService;
-    private readonly ScreenService _screenService;
+    private readonly IDesktopBackend _desktop;
     private readonly WallpaperService _wallpaperService;
     private readonly SlideshowService _slideshowService;
     private readonly ImageSaveService _imageSaveService;
@@ -28,7 +29,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
 
     public SettingsViewModel(
         ConfigService configService,
-        ScreenService screenService,
+        IDesktopBackend desktop,
         WallpaperService wallpaperService,
         SlideshowService slideshowService,
         ImageSaveService imageSaveService,
@@ -36,7 +37,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         SourcesViewModel sources)
     {
         _configService = configService;
-        _screenService = screenService;
+        _desktop = desktop;
         _wallpaperService = wallpaperService;
         _slideshowService = slideshowService;
         _imageSaveService = imageSaveService;
@@ -67,8 +68,8 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         AppSettings.Dispose();
     }
 
-    private void OnWebFetchFailed(string name, string reason) =>
-        StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, reason);
+    private void OnWebFetchFailed(string name, FetchFailure failure) =>
+        StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, FetchFailureText.Describe(failure));
 
     private void OnSourceChanged(string id) => _slideshowService.RefreshSource(_configService.Load(), id);
 
@@ -144,7 +145,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
         Screens.Clear();
         _adoptedDeviceIds.Clear();
 
-        _monitors = _screenService.GetMonitors();
+        _monitors = _desktop.GetMonitors();
         var config = _configService.Load();
 
         UnifiedMode = config.Unified;

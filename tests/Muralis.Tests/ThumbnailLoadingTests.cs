@@ -73,7 +73,7 @@ public sealed class ThumbnailLoadingTests : IDisposable
     public void ComposedPrune_EnumeratesMonitors_OnlyWhenDue()
     {
         var config = new ConfigService(_dir);
-        var maintenance = new CacheMaintenanceService(config, new WallpaperService(new WallpaperComposer(config)));
+        var maintenance = new CacheMaintenanceService(config, new WallpaperService(new WallpaperComposer(config), new WindowsDesktopBackend()));
         int calls = 0;
 
         maintenance.PruneComposedIfDue(() => { calls++; return []; });
