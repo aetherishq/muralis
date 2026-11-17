@@ -234,36 +234,39 @@ public partial class ScreenSettingsViewModel : ObservableObject
     [ObservableProperty]
     private string? folderPath;
 
-    /// <summary>Unités d'intervalle : localisées, jamais persistées (la config stocke un TimeSpan).</summary>
-    public static string UnitMinutes => Strings.Screen_UnitMinutes;
+    /// <summary>Unités d'intervalle : la logique compare l'enum, jamais le libellé localisé
+    /// (non persisté : la config stocke un TimeSpan).</summary>
+    public static IntervalUnitOption UnitMinutes => new(IntervalUnit.Minutes, Strings.Screen_UnitMinutes);
 
-    public static string UnitSeconds => Strings.Screen_UnitSeconds;
+    public static IntervalUnitOption UnitSeconds => new(IntervalUnit.Seconds, Strings.Screen_UnitSeconds);
 
-    public IReadOnlyList<string> IntervalUnits { get; } = [UnitMinutes, UnitSeconds];
+    public IReadOnlyList<IntervalUnitOption> IntervalUnits { get; } = [UnitMinutes, UnitSeconds];
 
     [ObservableProperty]
     private double intervalValue = 30;
 
     [ObservableProperty]
-    private string intervalUnit = UnitMinutes;
+    private IntervalUnitOption selectedIntervalUnit = UnitMinutes;
+
+    private bool InSeconds => SelectedIntervalUnit.Unit == IntervalUnit.Seconds;
 
     /// <summary>Borne haute de la saisie, exprimée dans l'unité courante
     /// (<see cref="ScreenConfig.MaxSlideshowInterval"/>, issue #44).</summary>
-    public double IntervalMaximum => IntervalUnit == UnitSeconds
+    public double IntervalMaximum => InSeconds
         ? ScreenConfig.MaxSlideshowInterval.TotalSeconds
         : ScreenConfig.MaxSlideshowInterval.TotalMinutes;
 
     /// <summary>À la bascule d'unité, convertit la valeur affichée (30 min ↔ 1800 s).</summary>
-    partial void OnIntervalUnitChanged(string? oldValue, string newValue)
+    partial void OnSelectedIntervalUnitChanged(IntervalUnitOption? oldValue, IntervalUnitOption newValue)
     {
         // Borne mise à jour AVANT la valeur convertie : la NumberBox ne doit pas la
         // rabattre sur l'ancien maximum (minutes → secondes multiplie par 60).
         OnPropertyChanged(nameof(IntervalMaximum));
 
-        if (oldValue is null || oldValue == newValue)
+        if (oldValue is null || oldValue.Unit == newValue.Unit)
             return;
 
-        IntervalValue = newValue == UnitSeconds
+        IntervalValue = newValue.Unit == IntervalUnit.Seconds
             ? Math.Round(IntervalValue * 60)
             : Math.Round(IntervalValue / 60, 2);
     }
@@ -343,7 +346,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
     /// <summary>Projette l'état courant vers un <see cref="ScreenConfig"/> persistable.</summary>
     public ScreenConfig ToConfig()
     {
-        var interval = ToInterval(IntervalValue, inSeconds: IntervalUnit == UnitSeconds);
+        var interval = ToInterval(IntervalValue, inSeconds: InSeconds);
 
         return new ScreenConfig
         {
@@ -396,7 +399,7 @@ public partial class ScreenSettingsViewModel : ObservableObject
             interval = ScreenConfig.MaxSlideshowInterval; // config antérieure au plafond (#44)
         // Affiche en minutes quand l'intervalle tombe rond, en secondes sinon.
         bool wholeMinutes = interval >= TimeSpan.FromMinutes(1) && interval.TotalSeconds % 60 == 0;
-        IntervalUnit = wholeMinutes ? UnitMinutes : UnitSeconds;
+        SelectedIntervalUnit = wholeMinutes ? UnitMinutes : UnitSeconds;
         IntervalValue = wholeMinutes ? interval.TotalMinutes : interval.TotalSeconds;
         Shuffle = config.Shuffle;
         // Fill (premier de la liste) en repli — couvre aussi un Span persisté sur une
@@ -468,4 +471,17 @@ public partial class ScreenSettingsViewModel : ObservableObject
             modes.Add(new(DesktopWallpaperPosition.Span, Strings.DisplayMode_Span));
         return modes;
     }
+}
+
+/// <summary>Unité de saisie de l'intervalle d'un diaporama.</summary>
+public enum IntervalUnit
+{
+    Minutes,
+    Seconds,
+}
+
+/// <summary>Unité présentable dans un ComboBox (libellé localisé, comparaison sur <see cref="Unit"/>).</summary>
+public sealed record IntervalUnitOption(IntervalUnit Unit, string Label)
+{
+    public override string ToString() => Label;
 }

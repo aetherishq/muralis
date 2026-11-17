@@ -444,33 +444,38 @@ public class SlideshowService
             return;
         }
 
-        if (target.Config.Shuffle)
+        foreach (var file in BuildCycle(files, target.Config.Shuffle, target.LastImage, Random.Shared))
+            target.Queue.Enqueue(file);
+    }
+
+    /// <summary>
+    /// Ordre d'un cycle de diaporama local. Aléatoire : mélange sans répétition, sans rejouer
+    /// en tête la dernière image du cycle précédent. Alphabétique : reprise juste après la
+    /// dernière image servie (utile quand le contenu du dossier a changé en cours de cycle).
+    /// </summary>
+    internal static List<string> BuildCycle(IEnumerable<string> folderFiles, bool shuffle, string? lastImage, Random random)
+    {
+        var files = folderFiles.ToList();
+        if (shuffle)
         {
             for (int i = files.Count - 1; i > 0; i--)
             {
-                int j = Random.Shared.Next(i + 1);
+                int j = random.Next(i + 1);
                 (files[i], files[j]) = (files[j], files[i]);
             }
 
-            // Éviter de rejouer la dernière image du cycle précédent en tête du nouveau.
-            if (files.Count > 1 && files[0] == target.LastImage)
+            if (files.Count > 1 && string.Equals(files[0], lastImage, StringComparison.OrdinalIgnoreCase))
                 (files[0], files[^1]) = (files[^1], files[0]);
-        }
-        else
-        {
-            files.Sort(StringComparer.OrdinalIgnoreCase);
-
-            // Reprendre le parcours juste après la dernière image servie (utile quand le
-            // contenu du dossier a changé en cours de cycle).
-            int lastIndex = target.LastImage is null
-                ? -1
-                : files.FindIndex(f => string.Equals(f, target.LastImage, StringComparison.OrdinalIgnoreCase));
-            if (lastIndex >= 0)
-                files = [.. files[(lastIndex + 1)..], .. files[..(lastIndex + 1)]];
+            return files;
         }
 
-        foreach (var file in files)
-            target.Queue.Enqueue(file);
+        files.Sort(StringComparer.OrdinalIgnoreCase);
+        int lastIndex = lastImage is null
+            ? -1
+            : files.FindIndex(f => string.Equals(f, lastImage, StringComparison.OrdinalIgnoreCase));
+        return lastIndex >= 0
+            ? [.. files[(lastIndex + 1)..], .. files[..(lastIndex + 1)]]
+            : files;
     }
 
     private sealed class SlideshowTarget(ScreenConfig config, Func<string, Task> apply, WallpaperSourceConfig? webSource, MonitorInfo? monitor)

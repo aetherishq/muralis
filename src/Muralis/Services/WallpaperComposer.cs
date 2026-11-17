@@ -103,22 +103,13 @@ public class WallpaperComposer
             switch (mode)
             {
                 case DesktopWallpaperPosition.Stretch:
-                    dc.DrawImage(source, target);
-                    break;
-
                 case DesktopWallpaperPosition.Fit:
-                    DrawScaledCentered(dc, source, tw, th, Math.Min(tw / sw, th / sh));
-                    break;
-
                 case DesktopWallpaperPosition.Fill:
-                    dc.PushClip(new RectangleGeometry(target));
-                    DrawScaledCentered(dc, source, tw, th, Math.Max(tw / sw, th / sh));
-                    dc.Pop();
-                    break;
-
                 case DesktopWallpaperPosition.Center:
+                    // Fill et Center débordent : découpés au cadre de l'écran.
+                    var (x, y, w, h) = ComputeDestRect(sw, sh, tw, th, mode);
                     dc.PushClip(new RectangleGeometry(target));
-                    DrawScaledCentered(dc, source, tw, th, 1.0);
+                    dc.DrawImage(source, new Rect(x, y, w, h));
                     dc.Pop();
                     break;
 
@@ -168,13 +159,27 @@ public class WallpaperComposer
         return true;
     }
 
-    private static void DrawScaledCentered(DrawingContext dc, BitmapSource source, int tw, int th, double scale)
+    /// <summary>
+    /// Rectangle de destination d'une image <paramref name="sw"/>×<paramref name="sh"/> sur un
+    /// écran <paramref name="tw"/>×<paramref name="th"/> : Stretch déforme au cadre, Fit tient
+    /// entièrement (bandes noires), Fill couvre entièrement (débord découpé), Center à
+    /// l'échelle 1. Toujours centré. (Tile est un pavage, hors de cette géométrie.)
+    /// </summary>
+    internal static (double X, double Y, double Width, double Height) ComputeDestRect(
+        double sw, double sh, double tw, double th, DesktopWallpaperPosition mode)
     {
-        double w = source.PixelWidth * scale;
-        double h = source.PixelHeight * scale;
-        double x = (tw - w) / 2.0;
-        double y = (th - h) / 2.0;
-        dc.DrawImage(source, new Rect(x, y, w, h));
+        if (mode == DesktopWallpaperPosition.Stretch)
+            return (0, 0, tw, th);
+
+        double scale = mode switch
+        {
+            DesktopWallpaperPosition.Fit => Math.Min(tw / sw, th / sh),
+            DesktopWallpaperPosition.Fill => Math.Max(tw / sw, th / sh),
+            _ => 1.0,
+        };
+        double w = sw * scale;
+        double h = sh * scale;
+        return ((tw - w) / 2.0, (th - h) / 2.0, w, h);
     }
 
     private static void SavePng(BitmapSource bitmap, string path)

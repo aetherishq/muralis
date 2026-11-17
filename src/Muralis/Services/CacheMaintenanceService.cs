@@ -83,19 +83,33 @@ public class CacheMaintenanceService
         if (!Directory.Exists(composedDir))
             return;
 
-        var files = SafeEnumerate(composedDir).OrderBy(f => f.LastWriteTimeUtc).ToList();
-        long total = files.Sum(f => f.Length);
+        var files = SafeEnumerate(composedDir)
+            .Select(f => new CachedFile(f.FullName, f.Length, f.LastWriteTimeUtc));
+        foreach (string path in SelectEvictions(files, applied, MaxComposedBytes))
+            TryDelete(path); // verrouillé : repris à la passe suivante
+    }
 
-        foreach (var file in files)
+    internal readonly record struct CachedFile(string Path, long Size, DateTime LastWriteUtc);
+
+    /// <summary>
+    /// Fichiers à supprimer pour repasser sous <paramref name="cap"/> octets : plus anciens
+    /// d'abord, et jamais un fond actuellement posé (même si le plafond reste dépassé).
+    /// </summary>
+    internal static IReadOnlyList<string> SelectEvictions(IEnumerable<CachedFile> files, IReadOnlySet<string> applied, long cap)
+    {
+        var ordered = files.OrderBy(f => f.LastWriteUtc).ToList();
+        long total = ordered.Sum(f => f.Size);
+        var evicted = new List<string>();
+        foreach (var file in ordered)
         {
-            if (total <= MaxComposedBytes)
+            if (total <= cap)
                 break;
-            if (applied.Contains(file.FullName))
+            if (applied.Contains(file.Path))
                 continue;
-
-            if (TryDelete(file.FullName))
-                total -= file.Length;
+            evicted.Add(file.Path);
+            total -= file.Size;
         }
+        return evicted;
     }
 
     /// <summary>Supprime les sous-dossiers de webcache qui ne correspondent à aucune

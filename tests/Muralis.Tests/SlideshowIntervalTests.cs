@@ -84,7 +84,7 @@ public class SlideshowIntervalTests
     public void ViewModel_UserTypingHugeValue_IsPersistedClamped()
     {
         var vm = CreateViewModel(new ScreenConfig { DeviceId = "screen", Mode = WallpaperMode.Slideshow });
-        vm.IntervalUnit = ScreenSettingsViewModel.UnitMinutes;
+        vm.SelectedIntervalUnit = ScreenSettingsViewModel.UnitMinutes;
         vm.IntervalValue = 40000;
 
         Assert.Equal(ScreenConfig.MaxSlideshowInterval, vm.ToConfig().SlideshowInterval);
@@ -95,10 +95,10 @@ public class SlideshowIntervalTests
     {
         var vm = CreateViewModel(new ScreenConfig { DeviceId = "screen" });
 
-        vm.IntervalUnit = ScreenSettingsViewModel.UnitMinutes;
+        vm.SelectedIntervalUnit = ScreenSettingsViewModel.UnitMinutes;
         Assert.Equal(ScreenConfig.MaxSlideshowInterval.TotalMinutes, vm.IntervalMaximum);
 
-        vm.IntervalUnit = ScreenSettingsViewModel.UnitSeconds;
+        vm.SelectedIntervalUnit = ScreenSettingsViewModel.UnitSeconds;
         Assert.Equal(ScreenConfig.MaxSlideshowInterval.TotalSeconds, vm.IntervalMaximum);
     }
 
