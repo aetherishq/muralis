@@ -114,7 +114,15 @@
   <data name="Status_UpdateInvalid"><value>URL absolue et chemin JSON requis.</value></data>
 
   <!-- Statuts barre Appliquer -->
-  <data name="Status_FetchFailedFormat"><value>Source « {0} » : impossible de récupérer une image — fond actuel conservé.</value></data>
+  <data name="Status_FetchFailedReasonFormat"><value>Source « {0} » : impossible de récupérer une image ({1}) — fond actuel conservé.</value></data>
+  <data name="Status_ApplyFailed"><value>Impossible d'appliquer le fond d'écran. Le détail est dans le journal (%LocalAppData%\Muralis\logs).</value></data>
+  <data name="FetchFailure_Timeout"><value>délai dépassé</value></data>
+  <data name="FetchFailure_Network"><value>erreur réseau</value></data>
+  <data name="FetchFailure_HttpFormat"><value>HTTP {0}</value></data>
+  <data name="FetchFailure_NoResults"><value>aucune image ne correspond</value></data>
+  <data name="FetchFailure_UnexpectedResponse"><value>réponse inattendue</value></data>
+  <data name="FetchFailure_InvalidImage"><value>image inutilisable</value></data>
+  <data name="FetchFailure_Other"><value>erreur inattendue</value></data>
   <data name="Status_AppliedUnifiedFormat"><value>Même fond appliqué à {0} écran(s).</value></data>
   <data name="Status_AppliedFormat"><value>Appliqué à {0} écran(s).</value></data>
   <data name="Status_FailedFormat"><value>Échec : {0}</value></data>

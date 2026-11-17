@@ -114,7 +114,15 @@
   <data name="Status_UpdateInvalid"><value>Absolute URL and JSON path are required.</value></data>
 
   <!-- Statuts barre Appliquer -->
-  <data name="Status_FetchFailedFormat"><value>Source “{0}”: could not fetch an image — current wallpaper kept.</value></data>
+  <data name="Status_FetchFailedReasonFormat"><value>Source “{0}”: could not fetch an image ({1}) — current wallpaper kept.</value></data>
+  <data name="Status_ApplyFailed"><value>Could not apply the wallpaper. Details are in the log (%LocalAppData%\Muralis\logs).</value></data>
+  <data name="FetchFailure_Timeout"><value>timed out</value></data>
+  <data name="FetchFailure_Network"><value>network error</value></data>
+  <data name="FetchFailure_HttpFormat"><value>HTTP {0}</value></data>
+  <data name="FetchFailure_NoResults"><value>no matching image</value></data>
+  <data name="FetchFailure_UnexpectedResponse"><value>unexpected response</value></data>
+  <data name="FetchFailure_InvalidImage"><value>unusable image</value></data>
+  <data name="FetchFailure_Other"><value>unexpected error</value></data>
   <data name="Status_AppliedUnifiedFormat"><value>Same wallpaper applied to {0} screen(s).</value></data>
   <data name="Status_AppliedFormat"><value>Applied to {0} screen(s).</value></data>
   <data name="Status_FailedFormat"><value>Failed: {0}</value></data>

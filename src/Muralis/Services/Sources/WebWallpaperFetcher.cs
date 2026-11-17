@@ -4,8 +4,18 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Muralis.Models;
+using Muralis.Resources;
 
 namespace Muralis.Services.Sources;
+
+/// <summary>Issue d'une récupération : chemin local de l'image, ou motif court (localisé)
+/// de l'échec.</summary>
+public sealed record FetchResult(string? Path, string? FailureReason)
+{
+    public static FetchResult Success(string path) => new(path, null);
+
+    public static FetchResult Failed(string reason) => new(null, reason);
+}
 
 /// <summary>
 /// Récupère une image depuis une source web et la matérialise en fichier local dans
@@ -52,11 +62,14 @@ public class WebWallpaperFetcher
     /// Wallhaven (null en mode unifié — les filtres d'écran sont omis). Le nom de
     /// fichier est un hash de l'URL d'image : une URL déjà en cache n'est pas re-téléchargée
     /// et rend le même chemin — l'appelant peut ainsi détecter « image inchangée » par simple
-    /// comparaison de chemins (source quotidienne, doublon d'une source aléatoire). Retourne
-    /// <c>null</c> en cas d'échec (réseau, JSON inattendu…) — l'appelant garde alors le fond
-    /// courant et retentera au tick suivant.
+    /// comparaison de chemins (source quotidienne, doublon d'une source aléatoire). En cas
+    /// d'échec (réseau, timeout, HTTP, JSON inattendu…), le résultat porte un motif court
+    /// localisé et la cause complète est journalisée — l'appelant garde le fond courant et
+    /// retentera au tick suivant. Seule une annulation demandée via <paramref name="ct"/>
+    /// lève : un timeout HTTP (aussi une <see cref="OperationCanceledException"/>) est un
+    /// échec ordinaire (issue #46).
     /// </summary>
-    public async Task<string?> FetchAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
+    public async Task<FetchResult> FetchAsync(WallpaperSourceConfig source, MonitorInfo? monitor, CancellationToken ct)
     {
         try
         {
@@ -64,17 +77,37 @@ public class WebWallpaperFetcher
                 ? await NextWallhavenImageAsync(source, monitor, ct).ConfigureAwait(false)
                 : await new HttpJsonSource(_http, source, ResolveApiKey(source)).GetImageUrlAsync(ct).ConfigureAwait(false);
 
-            return await DownloadAsync(source.Id, imageUrl, ct).ConfigureAwait(false);
+            string? path = await DownloadAsync(source.Id, imageUrl, ct).ConfigureAwait(false);
+            return path is null
+                ? FetchResult.Failed(Strings.FetchFailure_UnexpectedResponse)
+                : FetchResult.Success(path);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return null;
+            string reason = DescribeFailure(ex);
+            Log.Warn($"Source '{source.Name}' ({source.Id}): fetch failed — {reason}", ex);
+            return FetchResult.Failed(reason);
         }
     }
+
+    /// <summary>Motif court et localisé d'un échec, affiché dans la barre de statut.</summary>
+    internal static string DescribeFailure(Exception ex) => ex switch
+    {
+        OperationCanceledException => Strings.FetchFailure_Timeout, // annulation non demandée = timeout HttpClient
+        HttpRequestException { StatusCode: { } status } => string.Format(Strings.FetchFailure_HttpFormat, (int)status),
+        HttpRequestException => Strings.FetchFailure_Network,
+        NoResultsException => Strings.FetchFailure_NoResults,
+        JsonException or InvalidOperationException or KeyNotFoundException or FormatException
+            => Strings.FetchFailure_UnexpectedResponse,
+        _ => Strings.FetchFailure_Other,
+    };
+
+    /// <summary>Recherche sans résultat (filtres trop stricts, NSFW sans clé…).</summary>
+    internal sealed class NoResultsException(string message) : Exception(message);
 
     /// <summary>Prochaine image de la page Wallhaven du couple (source, écran) —
     /// re-remplie si vide, épuisée, périmée, ou si l'URL de recherche a changé (paramètres
@@ -101,7 +134,7 @@ public class WebWallpaperFetcher
         }
 
         if (page.Remaining.Count == 0)
-            throw new InvalidOperationException("Recherche Wallhaven sans résultat.");
+            throw new NoResultsException("Wallhaven search returned no results.");
         return page.Remaining.Dequeue();
     }
 

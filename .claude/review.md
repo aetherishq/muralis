@@ -15,25 +15,25 @@ Tableau tenu à jour à chaque PR. ✅ = corrigé et mergé, ⏳ = issue ouverte
 | C2 — Intervalle > 24,8 j : crash permanent au démarrage | Critique | #44 | ✅ PR #53 (v1.2.3) |
 | M1 — Téléchargements concurrents de la même URL | Majeur | #45 | ⏳ |
 | M2 — Cache web empoisonné (fichier partiel / non-image) | Majeur | #45 | ⏳ |
-| M3 — Timeouts HTTP avalés comme annulation | Majeur | #46 | ⏳ |
+| M3 — Timeouts HTTP avalés comme annulation | Majeur | #46 | ✅ PR #57 (v1.2.4) |
 | M4 — « Appliquer » interrompu à la première erreur | Majeur | #47 | ⏳ |
 | M5 — « Enregistrer le fond actuel » cassé pour Bing | Majeur | #48 | ⏳ |
-| M6 — Ni journalisation ni gestionnaire global | Majeur | #46 | ⏳ |
+| M6 — Ni journalisation ni gestionnaire global | Majeur | #46 | ✅ PR #57 (v1.2.4) |
 | m1 — Fuite d'abonnements au changement de langue | Mineur | #49 | ⏳ |
 | m2 — Miniatures décodées sur l'UI thread | Mineur | #49 | ⏳ |
 | m3 — `GetMonitors()` évalué avant le throttle | Mineur | #49 | ⏳ |
-| m4 — Exception d'abonné maquillée en échec de source | Mineur | #46 | ⏳ |
+| m4 — Exception d'abonné maquillée en échec de source | Mineur | #46 | ✅ PR #57 (v1.2.4) |
 | m5 — Interop COM (instances, `SetPosition` systématique) | Mineur | #41 | 🔗 commentaire sur #41 |
 | m6 — Source supprimée toujours interrogée | Mineur | #47 | ⏳ |
 | m7 — Taille de téléchargement non bornée | Mineur | #45 | ⏳ |
 | m8 — Config relue sur disque à chaque requête | Mineur | #43 | ✅ PR #55 (v1.2.3) |
 | m9 — Clé Wallhaven sauvée à chaque frappe | Mineur | #43 | ✅ PR #55 (v1.2.3) |
-| m10 — Messages techniques en français dans l'UI | Mineur | #46 | ⏳ |
+| m10 — Messages techniques en français dans l'UI | Mineur | #46 | ✅ PR #57 (v1.2.4) |
 | m11 — DESIGN.md : `Maximum` de la NumberBox | Mineur | #44 | ✅ PR #53 (v1.2.3) |
 | m11 — DESIGN.md : CheckBox « Adapter à l'écran », `FontSize` en dur | Mineur | #50 | ⏳ |
 | s1, s3, s4, s6 — CTS, User-Agent, entropie DPAPI, `PooledConnectionLifetime` | Suggestion | #52 | ⏳ |
 | s2 — `_urlByPath` en mémoire sans borne | Suggestion | #48 | ⏳ |
-| s5 — Fire-and-forget et exceptions non observées | Suggestion | #46 | ⏳ |
+| s5 — Fire-and-forget et exceptions non observées | Suggestion | #46 | ✅ PR #57 (v1.2.4) |
 | Testabilité (a) — projet de tests | — | #51 | 🟡 amorcé : `tests/Muralis.Tests` + CI (PR #53), tests config/migrations/intervalle |
 | Testabilité (b) — extraction `Muralis.Core` | — | #52 | ⏳ |
 

@@ -46,8 +46,8 @@ public partial class SettingsViewModel : ObservableObject
 
         // Feedback visible quand une source web ne fournit pas d'image (URL/chemin JSON
         // erronés, API en panne…) — sinon l'échec serait silencieux.
-        _slideshowService.WebFetchFailed += name =>
-            StatusMessage = string.Format(Strings.Status_FetchFailedFormat, name);
+        _slideshowService.WebFetchFailed += (name, reason) =>
+            StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, reason);
     }
 
     /// <summary>Paramètres d'application (page dédiée).</summary>
@@ -161,7 +161,10 @@ public partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = string.Format(Strings.Status_FailedFormat, ex.Message);
+            // Le détail technique (anglais, éventuellement un chemin) va au journal ;
+            // l'UI affiche un message localisé (#46).
+            Log.Error("Apply failed", ex);
+            StatusMessage = Strings.Status_ApplyFailed;
         }
     }
 
@@ -181,6 +184,7 @@ public partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            Log.Warn($"Save current wallpaper failed (screen '{screen.DeviceId}')", ex);
             StatusMessage = string.Format(Strings.Status_FailedFormat, ex.Message);
         }
     }

@@ -60,6 +60,12 @@ Any API that answers a GET request with JSON containing an image URL can feed a 
 
 The optional header/key pair covers APIs that authenticate via an HTTP header (e.g. `X-API-Key`).
 
+## Troubleshooting
+
+Muralis keeps a log in `%LocalAppData%\Muralis\logs\muralis.log`: failed downloads (with the HTTP status, timeout or parsing error), images that could not be applied, and unexpected errors. Please attach it when reporting a bug.
+
+Your settings live in `%LocalAppData%\Muralis\config.json`, with the previous version kept as `config.json.bak`. If the file is ever found damaged, it is set aside as `config.corrupt-<date>.json` instead of being overwritten.
+
 ## Building from source
 
 Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) (Windows).
@@ -68,6 +74,7 @@ Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) (Windows).
 git clone https://github.com/aetherishq/muralis.git
 cd muralis
 dotnet build src/Muralis/Muralis.csproj
+dotnet test Muralis.slnx   # unit tests
 ```
 
 To produce the installer (requires [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
