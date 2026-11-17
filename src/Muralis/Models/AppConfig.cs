@@ -6,6 +6,10 @@ namespace Muralis.Models;
 /// </summary>
 public class AppConfig
 {
+    /// <summary>Version de schéma la plus récente connue de ce build. Une config d'une
+    /// version supérieure (downgrade) n'est jamais réécrite (cf. <c>ConfigService</c>).</summary>
+    public const int CurrentVersion = 2;
+
     /// <summary>Version du schéma de config, pour migrations futures.</summary>
     public int Version { get; set; } = 1;
 

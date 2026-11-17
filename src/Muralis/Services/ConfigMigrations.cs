@@ -124,9 +124,9 @@ public static class ConfigMigrations
             }
         }
 
-        if (config.Version < 2)
+        if (config.Version < AppConfig.CurrentVersion)
         {
-            config.Version = 2;
+            config.Version = AppConfig.CurrentVersion;
             changed = true;
         }
 

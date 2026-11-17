@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -83,21 +84,41 @@ public partial class AppSettingsViewModel : ObservableObject
     private bool startWithWindows;
 
     /// <summary>Clé API Wallhaven (partagée par toutes les instances Wallhaven).
-    /// Persistée chiffrée DPAPI dans <see cref="AppConfig.ApiKeys"/>, sauvée au fil de la
-    /// saisie ; utilisée à la prochaine requête (aucun redémarrage nécessaire).</summary>
+    /// Persistée chiffrée DPAPI dans <see cref="AppConfig.ApiKeys"/>, sauvée peu après la
+    /// fin de la saisie ; utilisée à la prochaine requête (aucun redémarrage nécessaire).</summary>
     [ObservableProperty]
     private string wallhavenApiKey;
+
+    /// <summary>Délai de calme avant sauvegarde de la clé : une seule écriture de config
+    /// par saisie (au lieu d'une par frappe), et aucune requête partie avec une clé
+    /// partielle (issue #43).</summary>
+    private static readonly TimeSpan ApiKeySaveDelay = TimeSpan.FromMilliseconds(600);
+
+    private DispatcherTimer? _apiKeySaveTimer;
 
     partial void OnWallhavenApiKeyChanged(string value)
     {
         if (!_initialized)
             return;
 
+        if (_apiKeySaveTimer is null)
+        {
+            _apiKeySaveTimer = new DispatcherTimer { Interval = ApiKeySaveDelay };
+            _apiKeySaveTimer.Tick += (_, _) => SaveWallhavenApiKey();
+        }
+        _apiKeySaveTimer.Stop();
+        _apiKeySaveTimer.Start();
+    }
+
+    private void SaveWallhavenApiKey()
+    {
+        _apiKeySaveTimer?.Stop();
+
         var config = _configService.Load();
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(WallhavenApiKey))
             config.ApiKeys.Remove(WallhavenPresetId);
         else
-            config.ApiKeys[WallhavenPresetId] = ApiKeyProtector.Protect(value.Trim());
+            config.ApiKeys[WallhavenPresetId] = ApiKeyProtector.Protect(WallhavenApiKey.Trim());
         _configService.Save(config);
     }
 
