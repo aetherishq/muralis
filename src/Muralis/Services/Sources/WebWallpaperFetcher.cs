@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -48,6 +49,15 @@ public class WebWallpaperFetcher
     /// <summary>URL d'origine de chaque fichier servi cette session (le cache est nommé par
     /// hash) — permet à « Enregistrer le fond actuel » de restituer le nom d'origine.</summary>
     private readonly Dictionary<string, Uri> _urlByPath = [];
+
+    /// <summary>Téléchargements en vol, par chemin de cache : deux écrans sur la même
+    /// source (Bing sur deux écrans, timers synchrones) partagent un seul téléchargement au
+    /// lieu d'écrire le même fichier en concurrence (issue #45).</summary>
+    private readonly ConcurrentDictionary<string, Lazy<Task<bool>>> _inflight = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Taille maximale d'une image téléchargée (une source custom mal réglée ne
+    /// doit pas pouvoir remplir la mémoire ou le disque).</summary>
+    internal const long MaxImageBytes = 50L * 1024 * 1024;
 
     public WebWallpaperFetcher(HttpClient http, ConfigService configService)
     {
@@ -101,6 +111,7 @@ public class WebWallpaperFetcher
         HttpRequestException { StatusCode: { } status } => string.Format(Strings.FetchFailure_HttpFormat, (int)status),
         HttpRequestException => Strings.FetchFailure_Network,
         NoResultsException => Strings.FetchFailure_NoResults,
+        InvalidDataException => Strings.FetchFailure_InvalidImage,
         JsonException or InvalidOperationException or KeyNotFoundException or FormatException
             => Strings.FetchFailure_UnexpectedResponse,
         _ => Strings.FetchFailure_Other,
@@ -163,8 +174,13 @@ public class WebWallpaperFetcher
         return page;
     }
 
-    /// <summary>Matérialise l'URL d'image en fichier du cache disque (nom = hash d'URL,
-    /// re-téléchargement évité si déjà présent).</summary>
+    /// <summary>
+    /// Matérialise l'URL d'image en fichier du cache disque (nom = hash d'URL,
+    /// re-téléchargement évité si déjà présent et valide). Garanties (issue #45) : un seul
+    /// téléchargement par fichier à la fois, écriture dans un <c>.part</c> puis renommage
+    /// (jamais de fichier partiel sous le nom final), signature d'image vérifiée (un portail
+    /// captif qui répond du HTML en 200 n'empoisonne pas le cache), taille bornée.
+    /// </summary>
     private async Task<string?> DownloadAsync(string sourceId, Uri imageUrl, CancellationToken ct)
     {
         string directory = Path.Combine(_cacheRoot, Sanitize(sourceId));
@@ -174,13 +190,19 @@ public class WebWallpaperFetcher
             + GuessExtension(imageUrl);
         string path = Path.Combine(directory, fileName);
 
-        if (!File.Exists(path))
+        if (!IsCachedImage(path))
         {
-            byte[] bytes = await _http.GetByteArrayAsync(imageUrl, ct).ConfigureAwait(false);
-            if (bytes.Length == 0)
-                return null;
-
-            await File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+            var download = _inflight.GetOrAdd(path, p => new Lazy<Task<bool>>(
+                () => DownloadToCacheAsync(imageUrl, p, ct)));
+            try
+            {
+                if (!await download.Value.ConfigureAwait(false))
+                    return null;
+            }
+            finally
+            {
+                _inflight.TryRemove(KeyValuePair.Create(path, download));
+            }
             Prune(directory, keepNewest: MaxCachedPerSource);
         }
 
@@ -201,6 +223,110 @@ public class WebWallpaperFetcher
 
     /// <summary>Seuil de nettoyage de <see cref="_urlByPath"/>.</summary>
     private const int MaxTrackedUrls = 256;
+
+    /// <summary>Télécharge en flux vers un fichier temporaire unique, vérifie taille et
+    /// signature, puis le renomme en <paramref name="path"/>. Faux si la réponse est vide.</summary>
+    private async Task<bool> DownloadToCacheAsync(Uri imageUrl, string path, CancellationToken ct)
+    {
+        using var response = await _http.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength > MaxImageBytes)
+            throw new InvalidDataException($"Image too large: {response.Content.Headers.ContentLength} bytes (max {MaxImageBytes}).");
+
+        string part = $"{path}.{Guid.NewGuid():N}.part";
+        try
+        {
+            long total = 0;
+            byte[] header = new byte[ImageSignature.Length];
+            int headerLength = 0;
+
+            await using (var input = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
+            await using (var output = new FileStream(part, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            {
+                byte[] buffer = new byte[81920];
+                int read;
+                while ((read = await input.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                {
+                    if (headerLength < header.Length)
+                    {
+                        int take = Math.Min(read, header.Length - headerLength);
+                        Array.Copy(buffer, 0, header, headerLength, take);
+                        headerLength += take;
+                    }
+                    total += read;
+                    if (total > MaxImageBytes)
+                        throw new InvalidDataException($"Image too large: more than {MaxImageBytes} bytes.");
+                    await output.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                }
+            }
+
+            if (total == 0)
+                return false;
+            if (!ImageSignature.IsImage(header.AsSpan(0, headerLength)))
+            {
+                throw new InvalidDataException(
+                    $"Not an image (Content-Type '{response.Content.Headers.ContentType?.MediaType}', {total} bytes).");
+            }
+
+            try
+            {
+                // overwrite : remplace un fichier empoisonné d'une version antérieure. Les
+                // téléchargements concurrents de ce chemin sont déjà dédoublonnés.
+                File.Move(part, path, overwrite: true);
+            }
+            catch (IOException) when (IsCachedImage(path))
+            {
+                // Verrouillé mais déjà valide (autre instance de l'app…) : même contenu.
+            }
+            return true;
+        }
+        finally
+        {
+            try { File.Delete(part); } catch (Exception) { /* .part orphelin : purgé avec le dossier */ }
+        }
+    }
+
+    /// <summary>Vrai si le fichier du cache existe et commence par une signature d'image
+    /// (un fichier partiel ou empoisonné d'une version antérieure est re-téléchargé).</summary>
+    private static bool IsCachedImage(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return false;
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            Span<byte> header = stackalloc byte[ImageSignature.Length];
+            int read = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+            return ImageSignature.IsImage(header[..read]);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Oublie un fichier du cache que le pipeline n'a pas pu utiliser (décodage ou
+    /// composition en échec) : il sera re-téléchargé à la prochaine demande au lieu d'être
+    /// resservi indéfiniment. Sans effet hors du dossier de cache.
+    /// </summary>
+    public void Invalidate(string path)
+    {
+        string full = Path.GetFullPath(path);
+        if (!full.StartsWith(Path.GetFullPath(_cacheRoot) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        try
+        {
+            File.Delete(full);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Could not drop unusable cached image '{full}'", ex);
+        }
+        lock (_urlByPath)
+            _urlByPath.Remove(path);
+    }
 
     /// <summary>URL d'origine d'un fichier du cache (null si inconnue — fichier servi lors
     /// d'une session précédente).</summary>
@@ -239,8 +365,10 @@ public class WebWallpaperFetcher
     {
         try
         {
+            // Images seulement : les .part de téléchargements en cours ne comptent pas.
             var stale = new DirectoryInfo(directory)
                 .EnumerateFiles()
+                .Where(f => ImageFiles.Extensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase))
                 .OrderByDescending(f => f.CreationTimeUtc)
                 .Skip(keepNewest);
             foreach (var file in stale)
