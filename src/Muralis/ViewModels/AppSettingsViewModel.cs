@@ -17,7 +17,7 @@ namespace Muralis.ViewModels;
 /// au changement (la langue reconstruit l'UI via le callback fourni par App), le démarrage
 /// Windows est écrit directement dans le registre (jamais dans config.json, cf. AGENTS.md).
 /// </summary>
-public partial class AppSettingsViewModel : ObservableObject
+public partial class AppSettingsViewModel : ObservableObject, IDisposable
 {
     /// <summary>Choix de thème présentable dans un ComboBox.</summary>
     public sealed record ThemeOption(ThemePreference Value, string Label)
@@ -108,6 +108,14 @@ public partial class AppSettingsViewModel : ObservableObject
         }
         _apiKeySaveTimer.Stop();
         _apiKeySaveTimer.Start();
+    }
+
+    /// <summary>Clé en cours de saisie lors d'une reconstruction de l'UI (bascule de
+    /// langue) : sauvegardée tout de suite plutôt que perdue avec le timer.</summary>
+    public void Dispose()
+    {
+        if (_apiKeySaveTimer?.IsEnabled == true)
+            SaveWallhavenApiKey();
     }
 
     private void SaveWallhavenApiKey()

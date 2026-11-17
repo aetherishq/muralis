@@ -89,7 +89,7 @@ public partial class App : Application
         var startupMonitors = _screenService.GetMonitors();
         cacheMaintenance.CleanupAtStartup(configService.Load(), startupMonitors);
         _slideshowService.WallpaperApplied += () =>
-            cacheMaintenance.PruneComposedIfDue(_screenService!.GetMonitors());
+            cacheMaintenance.PruneComposedIfDue(_screenService!.GetMonitors);
 
         BuildViewModels();
         _tray = CreateTrayIcon();
@@ -127,6 +127,8 @@ public partial class App : Application
     /// <summary>(Re)construit le graphe de ViewModels — leurs libellés capturent la culture courante.</summary>
     private void BuildViewModels()
     {
+        // L'ancien graphe (bascule de langue) se désabonne des services, qui survivent (#49).
+        _settingsViewModel?.Dispose();
         var appSettings = new AppSettingsViewModel(_configService!, _themeService!, () => _settingsWindow, ApplyLanguage);
         var sources = new SourcesViewModel(_configService!);
         _settingsViewModel = new SettingsViewModel(_configService!, _screenService!, _wallpaperService!, _slideshowService!, _imageSaveService!, appSettings, sources);

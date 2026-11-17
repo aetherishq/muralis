@@ -148,7 +148,19 @@ public partial class ScreenSettingsViewModel : ObservableObject
     }
 
     /// <summary>Recharge la miniature du fond appliqué depuis son chemin (null : pas d'aperçu).</summary>
-    public void SetCurrentWallpaper(string? path) => CurrentWallpaper = LoadThumbnail(path);
+    /// <remarks>Décodage hors UI thread (PNG composé souvent en 4K) ; seul le dernier
+    /// appel est retenu si plusieurs se chevauchent (#49).</remarks>
+    public Task SetCurrentWallpaper(string? path)
+    {
+        int request = ++_currentWallpaperRequest;
+        return LoadOffUiThreadAsync(() => LoadThumbnail(path), image =>
+        {
+            if (request == _currentWallpaperRequest)
+                CurrentWallpaper = image;
+        });
+    }
+
+    private int _currentWallpaperRequest;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowFixed), nameof(ShowSlideshow), nameof(ShowSlideshowPreview))]
@@ -268,7 +280,39 @@ public partial class ScreenSettingsViewModel : ObservableObject
 
     public bool ShowSlideshowPreview => ShowSlideshow && IsLocalSource && PreviewThumbnails.Count > 0;
 
-    partial void OnFolderPathChanged(string? value) => PreviewThumbnails = LoadFolderThumbnails(value);
+    private int _previewRequest;
+
+    /// <summary>Tâche du dernier chargement d'aperçu de dossier (attendue par les tests).</summary>
+    internal Task PreviewLoading { get; private set; } = Task.CompletedTask;
+
+    /// <remarks>8 décodages hors UI thread : un partage réseau lent ne gèle plus la
+    /// fenêtre ; un dossier choisi entre-temps l'emporte (#49).</remarks>
+    partial void OnFolderPathChanged(string? value)
+    {
+        int request = ++_previewRequest;
+        PreviewLoading = LoadOffUiThreadAsync(() => LoadFolderThumbnails(value), thumbnails =>
+        {
+            if (request == _previewRequest)
+                PreviewThumbnails = thumbnails;
+        });
+    }
+
+    /// <summary>Charge en tâche de fond puis assigne sur le contexte appelant (UI thread
+    /// dans l'app). Les images sont gelées (<c>Freeze</c>), donc utilisables de partout.</summary>
+    private static async Task LoadOffUiThreadAsync<T>(Func<T> load, Action<T> assign)
+    {
+        T result;
+        try
+        {
+            result = await Task.Run(load);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Thumbnail loading failed", ex);
+            return;
+        }
+        assign(result);
+    }
 
     [RelayCommand]
     private void Browse()
