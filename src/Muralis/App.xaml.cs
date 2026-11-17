@@ -3,6 +3,9 @@ using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Microsoft.Win32;
+using Muralis.Models;
 using H.NotifyIcon;
 using Muralis.Resources;
 using Muralis.Services;
@@ -29,6 +32,19 @@ public partial class App : Application
     private ScreenService? _screenService;
     private WallpaperService? _wallpaperService;
     private ImageSaveService? _imageSaveService;
+
+    /// <summary>Disposition d'écrans sur laquelle tournent les fonds (#42).</summary>
+    private IReadOnlyList<MonitorInfo> _monitors = [];
+
+    /// <summary>Écrans présents au démarrage : seuls ceux branchés ensuite reçoivent le fond
+    /// Windows par défaut s'ils sont inconnus (au démarrage, Windows garde leur fond).</summary>
+    private HashSet<string> _startupDeviceIds = [];
+
+    private DispatcherTimer? _displayDebounce;
+
+    /// <summary>Une dock émet une rafale d'événements pendant que Windows réorganise les
+    /// écrans : on attend le calme avant de ré-énumérer.</summary>
+    private static readonly TimeSpan DisplayDebounceDelay = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// Vrai pendant l'arrêt volontaire (menu « Quitter »). Permet à la fenêtre de settings de se
@@ -94,8 +110,20 @@ public partial class App : Application
         BuildViewModels();
         _tray = CreateTrayIcon();
 
-        // Reprend les diaporamas persistés (les fonds fixes, eux, sont conservés par Windows).
-        _slideshowService.Restart(configService.Load(), startupMonitors);
+        // Reprend les diaporamas persistés (les fonds fixes, eux, sont conservés par Windows,
+        // sauf pour un écran repris par identifiant matériel : posé ici).
+        _monitors = startupMonitors;
+        _startupDeviceIds = startupMonitors.Select(m => m.DeviceId).ToHashSet();
+        var runtimeConfig = configService.Load();
+        var matched = ScreenMatcher.CompleteForRuntime(runtimeConfig, startupMonitors, _ => null).ToHashSet();
+        if (matched.Count > 0)
+            _wallpaperService.Apply(runtimeConfig, startupMonitors.Where(m => matched.Contains(m.DeviceId)).ToList());
+        _slideshowService.Restart(runtimeConfig, startupMonitors);
+
+        // Dock/undock, écran ajouté/retiré, résolution, sortie de veille (#42). Événements
+        // statiques : désabonnés à la sortie.
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         // Sans --minimized (double-clic sur le raccourci) : ouvrir directement les paramètres.
         bool minimized = e.Args.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase));
@@ -283,8 +311,72 @@ public partial class App : Application
         Shutdown();
     }
 
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => ScheduleDisplayCheck();
+
+    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    {
+        // Le laptop est souvent dédocké pendant la veille.
+        if (e.Mode == PowerModes.Resume)
+            ScheduleDisplayCheck();
+    }
+
+    /// <summary>(Re)lance le debounce. SystemEvents lève sur son propre thread.</summary>
+    private void ScheduleDisplayCheck() => Dispatcher.BeginInvoke(() =>
+    {
+        if (_displayDebounce is null)
+        {
+            _displayDebounce = new DispatcherTimer { Interval = DisplayDebounceDelay };
+            _displayDebounce.Tick += (_, _) =>
+            {
+                _displayDebounce.Stop();
+                OnDisplayLayoutMaybeChanged();
+            };
+        }
+        _displayDebounce.Stop();
+        _displayDebounce.Start();
+    });
+
+    /// <summary>
+    /// Ré-énumère les écrans ; si la disposition a changé, re-pose les fonds fixes (composés
+    /// à la nouvelle résolution) et relance les diaporamas sur la nouvelle liste.
+    /// </summary>
+    private void OnDisplayLayoutMaybeChanged()
+    {
+        try
+        {
+            var monitors = _screenService!.GetMonitors();
+            if (monitors.Count == 0)
+            {
+                Log.Warn("Display change: no active monitor reported, ignored");
+                return;
+            }
+            if (ScreenMatcher.SameLayout(monitors, _monitors))
+                return;
+
+            Log.Info($"Display layout changed: {_monitors.Count} -> {monitors.Count} monitor(s)");
+            _monitors = monitors;
+
+            var config = _configService!.Load();
+            ScreenMatcher.CompleteForRuntime(config, monitors,
+                m => _startupDeviceIds.Contains(m.DeviceId) ? null : ScreenMatcher.WindowsDefaultWallpaper(m));
+            var report = _wallpaperService!.Apply(config, monitors);
+            _slideshowService!.Restart(config, monitors);
+            if (report.Failed > 0)
+                Log.Warn($"Display change: {report.Failed} wallpaper(s) could not be applied");
+
+            // Le sélecteur d'écrans et « Appliquer » doivent viser la nouvelle disposition.
+            _settingsViewModel?.Load();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Display change handling failed", ex);
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         _tray?.Dispose();
         base.OnExit(e);
     }

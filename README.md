@@ -18,6 +18,7 @@ Muralis lives in the notification area and gives every monitor its own wallpaper
 ## Features
 
 - **Per-screen configuration** — each monitor gets its own source (fixed image, slideshow, or web) and its own display mode (fill, fit, stretch, center, tile), or one unified setup for all screens (including span). The monitor selector mirrors your real desktop layout, with live thumbnails of the applied wallpapers.
+- **Docking-aware** — plugging or unplugging a monitor, docking a laptop, changing resolution or waking from sleep is picked up live: wallpapers are recomposed for the new layout without restarting. A screen seen through another dock port keeps its settings; a brand-new one gets the Windows default wallpaper until you configure it.
 - **Slideshows** — from a local folder (shuffled or alphabetical, any interval) or from a random web source.
 - **Web sources** — Bing image of the day (auto-refreshed) and Wallhaven out of the box. The Wallhaven form covers tags (every listed tag required, `-` to exclude), categories and content filters, and can **fit each screen automatically**: minimum resolution and orientation are computed per monitor at request time, so one source serves portrait images to portrait screens. Results are fetched a page at a time to respect API quotas.
 - **Multiple instances** — add the same source several times with different settings (e.g. a `Wallhaven landscape` and a `Wallhaven portrait`), rename and duplicate them freely.
