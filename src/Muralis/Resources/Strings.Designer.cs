@@ -80,6 +80,7 @@ public static class Strings
     public static string Status_AddedFormat => Get(nameof(Status_AddedFormat));
     public static string Status_AddedNoHeaderFormat => Get(nameof(Status_AddedNoHeaderFormat));
     public static string Status_AppliedFormat => Get(nameof(Status_AppliedFormat));
+    public static string Status_AppliedPartialFormat => Get(nameof(Status_AppliedPartialFormat));
     public static string Status_AppliedUnifiedFormat => Get(nameof(Status_AppliedUnifiedFormat));
     public static string Status_ApplyFailed => Get(nameof(Status_ApplyFailed));
     public static string Status_CustomInvalid => Get(nameof(Status_CustomInvalid));

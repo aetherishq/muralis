@@ -48,6 +48,10 @@ public partial class SettingsViewModel : ObservableObject
         // erronés, API en panne…) — sinon l'échec serait silencieux.
         _slideshowService.WebFetchFailed += (name, reason) =>
             StatusMessage = string.Format(Strings.Status_FetchFailedReasonFormat, name, reason);
+
+        // Source modifiée/retirée : seuls ses diaporamas suivent, tout de suite (#47).
+        // Même durée de vie que ce ViewModel (reconstruits ensemble) : pas de fuite.
+        Sources.SourceChanged += id => _slideshowService.RefreshSource(_configService.Load(), id);
     }
 
     /// <summary>Paramètres d'application (page dédiée).</summary>
@@ -151,21 +155,26 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             _configService.Save(config);
-            _wallpaperService.Apply(config, _monitors);
-            // Relance les diaporamas selon la nouvelle config (première image immédiate).
-            _slideshowService.Restart(config, _monitors);
-            RefreshCurrentWallpapers();
-            StatusMessage = string.Format(
-                UnifiedMode ? Strings.Status_AppliedUnifiedFormat : Strings.Status_AppliedFormat,
-                _monitors.Count);
         }
         catch (Exception ex)
         {
-            // Le détail technique (anglais, éventuellement un chemin) va au journal ;
-            // l'UI affiche un message localisé (#46).
-            Log.Error("Apply failed", ex);
+            // Rien n'est appliqué si la config n'a pas pu être persistée : l'état affiché
+            // et l'état au prochain démarrage divergeraient.
+            Log.Error("Apply: saving the configuration failed", ex);
             StatusMessage = Strings.Status_ApplyFailed;
+            return;
         }
+
+        // Écrans isolés (Apply ne lève pas) et diaporamas TOUJOURS relancés : une image
+        // fixe illisible sur un écran ne laisse plus tourner l'ancien diaporama d'un autre
+        // jusqu'au prochain démarrage (#47).
+        var report = _wallpaperService.Apply(config, _monitors);
+        _slideshowService.Restart(config, _monitors);
+        RefreshCurrentWallpapers();
+
+        StatusMessage = report.Failed > 0
+            ? string.Format(Strings.Status_AppliedPartialFormat, report.Failed)
+            : string.Format(UnifiedMode ? Strings.Status_AppliedUnifiedFormat : Strings.Status_AppliedFormat, _monitors.Count);
     }
 
     /// <summary>Enregistre l'image web affichée sur un écran (bouton au survol de sa

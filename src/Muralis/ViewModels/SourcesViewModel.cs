@@ -46,6 +46,10 @@ public partial class SourcesViewModel : ObservableObject
         Sources.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoSources));
     }
 
+    /// <summary>Levé (avec l'Id) après la sauvegarde d'une modification ou le retrait d'une
+    /// source : les diaporamas qui l'utilisent doivent suivre sans attendre un Appliquer (#47).</summary>
+    public event Action<string>? SourceChanged;
+
     /// <summary>Vrai quand aucune source n'est ajoutée (état vide de la page).</summary>
     public bool HasNoSources => Sources.Count == 0;
 
@@ -183,6 +187,7 @@ public partial class SourcesViewModel : ObservableObject
         StatusMessage = string.Format(
             KeyWithoutHeader(source) ? Strings.Status_SavedNoHeaderFormat : Strings.Status_SavedFormat,
             source.Name);
+        SourceChanged?.Invoke(source.Id);
     }
 
     /// <summary>Crée une nouvelle instance à partir d'une existante (mêmes paramètres,
@@ -221,6 +226,7 @@ public partial class SourcesViewModel : ObservableObject
         _configService.Save(config);
 
         StatusMessage = string.Format(Strings.Status_RemovedFormat, source.Name);
+        SourceChanged?.Invoke(source.Id);
     }
 
     private void Add(WallpaperSourceConfig source)
