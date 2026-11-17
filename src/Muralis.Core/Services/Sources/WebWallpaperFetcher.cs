@@ -5,17 +5,16 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Muralis.Models;
-using Muralis.Resources;
 
 namespace Muralis.Services.Sources;
 
 /// <summary>Issue d'une récupération : chemin local de l'image, ou motif court (localisé)
 /// de l'échec.</summary>
-public sealed record FetchResult(string? Path, string? FailureReason)
+public sealed record FetchResult(string? Path, FetchFailure? Failure)
 {
     public static FetchResult Success(string path) => new(path, null);
 
-    public static FetchResult Failed(string reason) => new(null, reason);
+    public static FetchResult Failed(FetchFailure failure) => new(null, failure);
 }
 
 /// <summary>
@@ -39,6 +38,7 @@ public class WebWallpaperFetcher
 
     private readonly HttpClient _http;
     private readonly ConfigService _configService;
+    private readonly ISecretProtector _secrets;
     private readonly string _cacheRoot;
 
     /// <summary>Pages Wallhaven en mémoire. Un couple (source, écran) n'a qu'un seul
@@ -59,10 +59,11 @@ public class WebWallpaperFetcher
     /// doit pas pouvoir remplir la mémoire ou le disque).</summary>
     internal const long MaxImageBytes = 50L * 1024 * 1024;
 
-    public WebWallpaperFetcher(HttpClient http, ConfigService configService)
+    public WebWallpaperFetcher(HttpClient http, ConfigService configService, ISecretProtector secrets)
     {
         _http = http;
         _configService = configService;
+        _secrets = secrets;
         _cacheRoot = Path.Combine(configService.DataDirectory, "webcache");
     }
 
@@ -89,7 +90,7 @@ public class WebWallpaperFetcher
 
             string? path = await DownloadAsync(source.Id, imageUrl, ct).ConfigureAwait(false);
             return path is null
-                ? FetchResult.Failed(Strings.FetchFailure_UnexpectedResponse)
+                ? FetchResult.Failed(new FetchFailure(FetchFailureKind.UnexpectedResponse))
                 : FetchResult.Success(path);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -98,23 +99,23 @@ public class WebWallpaperFetcher
         }
         catch (Exception ex)
         {
-            string reason = DescribeFailure(ex);
-            Log.Warn($"Source '{source.Name}' ({source.Id}): fetch failed — {reason}", ex);
-            return FetchResult.Failed(reason);
+            var failure = DescribeFailure(ex);
+            Log.Warn($"Source '{source.Name}' ({source.Id}): fetch failed — {failure.Kind}{(failure.HttpStatus is { } code ? $" {code}" : "")}", ex);
+            return FetchResult.Failed(failure);
         }
     }
 
-    /// <summary>Motif court et localisé d'un échec, affiché dans la barre de statut.</summary>
-    internal static string DescribeFailure(Exception ex) => ex switch
+    /// <summary>Cause d'un échec, traduite par l'app pour la barre de statut.</summary>
+    internal static FetchFailure DescribeFailure(Exception ex) => ex switch
     {
-        OperationCanceledException => Strings.FetchFailure_Timeout, // annulation non demandée = timeout HttpClient
-        HttpRequestException { StatusCode: { } status } => string.Format(Strings.FetchFailure_HttpFormat, (int)status),
-        HttpRequestException => Strings.FetchFailure_Network,
-        NoResultsException => Strings.FetchFailure_NoResults,
-        InvalidDataException => Strings.FetchFailure_InvalidImage,
+        OperationCanceledException => new(FetchFailureKind.Timeout), // annulation non demandée = timeout HttpClient
+        HttpRequestException { StatusCode: { } status } => new(FetchFailureKind.Http, (int)status),
+        HttpRequestException => new(FetchFailureKind.Network),
+        NoResultsException => new(FetchFailureKind.NoResults),
+        InvalidDataException => FetchFailure.InvalidImage,
         JsonException or InvalidOperationException or KeyNotFoundException or FormatException
-            => Strings.FetchFailure_UnexpectedResponse,
-        _ => Strings.FetchFailure_Other,
+            => new(FetchFailureKind.UnexpectedResponse),
+        _ => FetchFailure.Other,
     };
 
     /// <summary>Recherche sans résultat (filtres trop stricts, NSFW sans clé…).</summary>
@@ -345,15 +346,11 @@ public class WebWallpaperFetcher
             return null;
 
         return _configService.Load().ApiKeys.TryGetValue(source.PresetId, out string? blob)
-            ? ApiKeyProtector.Unprotect(blob)
+            ? _secrets.Unprotect(blob)
             : null;
     }
 
-    private static string Sanitize(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c));
-    }
+    private static string Sanitize(string name) => FileNames.Sanitize(name);
 
     private static string GuessExtension(Uri imageUrl)
     {

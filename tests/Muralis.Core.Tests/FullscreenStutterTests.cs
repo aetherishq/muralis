@@ -1,16 +1,12 @@
 using System.IO;
 using System.Net.Http;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Muralis.Models;
 using Muralis.Services;
-using Muralis.Services.Interop;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
-/// <summary>Issue #41 : report pendant un jeu plein écran, composition hors UI thread,
-/// poses regroupées.</summary>
+/// <summary>Issue #41 : report pendant un jeu plein écran, poses regroupées.</summary>
 public sealed class FullscreenStutterTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "muralis-tests-" + Guid.NewGuid().ToString("N"));
@@ -22,25 +18,7 @@ public sealed class FullscreenStutterTests : IDisposable
         try { Directory.Delete(_dir, recursive: true); } catch { /* best effort */ }
     }
 
-    private static RECT Rect(int left, int top, int right, int bottom) => new() { Left = left, Top = top, Right = right, Bottom = bottom };
-
-    [Fact]
-    public void Borderless_CoveringTheMonitor_IsFullscreen()
-    {
-        var monitor = Rect(1920, 0, 4480, 1440);
-
-        Assert.True(FullscreenDetector.CoversMonitor(Rect(1920, 0, 4480, 1440), monitor, hasCaption: false));
-        Assert.True(FullscreenDetector.CoversMonitor(Rect(1912, -8, 4488, 1448), monitor, hasCaption: false));
-    }
-
-    [Fact]
-    public void MaximizedWindowWithTitleBar_OrSmallerWindow_IsNotFullscreen()
-    {
-        var monitor = Rect(0, 0, 1920, 1080);
-
-        Assert.False(FullscreenDetector.CoversMonitor(Rect(-8, -8, 1928, 1088), monitor, hasCaption: true));
-        Assert.False(FullscreenDetector.CoversMonitor(Rect(0, 0, 1920, 1040), monitor, hasCaption: false));
-    }
+    private static PixelRect Rect(int left, int top, int right, int bottom) => new() { Left = left, Top = top, Right = right, Bottom = bottom };
 
     [Fact]
     public async Task PosesWithinTheWindow_AreExecutedAsOneBatch()
@@ -84,25 +62,6 @@ public sealed class FullscreenStutterTests : IDisposable
     }
 
     [Fact]
-    public async Task Composition_RunsOnADedicatedStaThread()
-    {
-        string source = Path.Combine(_dir, "source.png");
-        var bitmap = BitmapSource.Create(8, 8, 96, 96, PixelFormats.Gray8, null, Enumerable.Repeat((byte)128, 64).ToArray(), 8);
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using (var stream = File.Create(source))
-            encoder.Save(stream);
-
-        // Thread de test MTA : la composition (RenderTargetBitmap, STA requis) passe quand même.
-        Assert.Equal(ApartmentState.MTA, Thread.CurrentThread.GetApartmentState());
-        var composer = new WallpaperComposer(new ConfigService(Path.Combine(_dir, "data")));
-
-        string composed = await composer.ComposeAsync(source, 32, 18, DesktopWallpaperPosition.Fill);
-
-        Assert.True(File.Exists(composed));
-    }
-
-    [Fact]
     public async Task SlideshowChange_WaitsForTheGameToEnd_WithoutStacking()
     {
         string folder = Path.Combine(_dir, "pics");
@@ -112,7 +71,7 @@ public sealed class FullscreenStutterTests : IDisposable
 
         bool inGame = true;
         var wallpapers = new ApplyTests.FakeWallpaperService(_dir);
-        var fetcher = new WebWallpaperFetcher(new HttpClient(), new ConfigService(_dir));
+        var fetcher = new WebWallpaperFetcher(new HttpClient(), new ConfigService(_dir), Fakes.Secrets);
         var slideshow = new SlideshowService(wallpapers, fetcher, shouldDefer: () => inGame);
         var config = new AppConfig
         {

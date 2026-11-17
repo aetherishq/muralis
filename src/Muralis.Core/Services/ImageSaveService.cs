@@ -83,8 +83,7 @@ public class ImageSaveService(ConfigService configService, SlideshowService slid
         if (string.IsNullOrWhiteSpace(candidate))
             return null;
 
-        var invalid = Path.GetInvalidFileNameChars();
-        string name = string.Concat(candidate.Select(c => invalid.Contains(c) ? '_' : c));
+        string name = FileNames.Sanitize(candidate);
         bool isImage = ImageFiles.Extensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
         return isImage && Path.GetFileNameWithoutExtension(name).Length > 0 ? name : null;
     }

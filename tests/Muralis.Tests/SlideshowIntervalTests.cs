@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using Muralis.Models;
 using Muralis.Services;
-using Muralis.Services.Interop;
 using Muralis.ViewModels;
 
 namespace Muralis.Tests;
@@ -112,7 +111,7 @@ public class SlideshowIntervalTests
         {
             new(ScreenConfig.LocalFileSourceType, ScreenSettingsViewModel.LocalFileOption),
         };
-        var monitor = new MonitorInfo("screen", new RECT { Left = 0, Top = 0, Right = 1920, Bottom = 1080 });
+        var monitor = new MonitorInfo("screen", new PixelRect(0, 0, 1920, 1080));
         return new ScreenSettingsViewModel(1, monitor, config, random, daily);
     }
 }

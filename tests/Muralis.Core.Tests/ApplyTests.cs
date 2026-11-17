@@ -5,10 +5,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Muralis.Models;
 using Muralis.Services;
-using Muralis.Services.Interop;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #47 : un écran en échec interrompait « Appliquer » (diaporamas non relancés),
 /// et une source retirée/modifiée continuait d'être interrogée avec ses anciens réglages.</summary>
@@ -26,7 +25,7 @@ public sealed class ApplyTests : IDisposable
     }
 
     private static MonitorInfo Monitor(string id, int left) =>
-        new(id, new RECT { Left = left, Top = 0, Right = left + 1920, Bottom = 1080 });
+        new(id, new PixelRect(left, 0, left + 1920, 1080));
 
     private string Image(string name)
     {
@@ -104,7 +103,7 @@ public sealed class ApplyTests : IDisposable
         var configService = new ConfigService(_dir);
         var wallpapers = new FakeWallpaperService(_dir);
         var server = new FakeServer(imageDelay);
-        var fetcher = new WebWallpaperFetcher(new HttpClient(server), configService);
+        var fetcher = new WebWallpaperFetcher(new HttpClient(server), configService, Fakes.Secrets);
         var config = new AppConfig
         {
             Sources =
@@ -132,7 +131,7 @@ public sealed class ApplyTests : IDisposable
     }
 
     /// <summary>Enregistre les poses au lieu d'appeler IDesktopWallpaper.</summary>
-    internal sealed class FakeWallpaperService(string dir) : WallpaperService(new WallpaperComposer(new ConfigService(dir)))
+    internal sealed class FakeWallpaperService(string dir) : WallpaperService(new Fakes.Composer(), new Fakes.Desktop())
     {
         public string? FailOn { get; init; }
 

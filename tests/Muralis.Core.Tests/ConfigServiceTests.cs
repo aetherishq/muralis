@@ -2,7 +2,7 @@ using System.IO;
 using Muralis.Models;
 using Muralis.Services;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #43 : une config illisible ne doit jamais être écrasée, l'écriture doit
 /// être atomique et une config d'une version future jamais réécrite.</summary>
@@ -27,7 +27,7 @@ public sealed class ConfigServiceTests : IDisposable
     private static AppConfig RunStartup(ConfigService service)
     {
         var config = service.Load();
-        if (ConfigMigrations.Apply(config))
+        if (ConfigMigrations.Apply(config, Fakes.Secrets))
             service.Save(config);
         return config;
     }

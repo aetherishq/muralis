@@ -42,7 +42,7 @@ public class AppConfig
     public string? SaveDirectory { get; set; }
 
     /// <summary>Clés API par fournisseur (<see cref="WallpaperSourceConfig.PresetId"/> →
-    /// blob DPAPI base64, cf. <c>ApiKeyProtector</c>) : une clé partagée par toutes les
+    /// blob chiffré base64, cf. <c>ISecretProtector</c>) : une clé partagée par toutes les
     /// instances d'un même preset. Les sources personnalisées gardent leur clé par instance.</summary>
     public Dictionary<string, string> ApiKeys { get; set; } = [];
 

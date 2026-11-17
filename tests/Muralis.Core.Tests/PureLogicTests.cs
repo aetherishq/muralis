@@ -1,19 +1,17 @@
 using System.Text.Json;
 using Muralis.Models;
 using Muralis.Services;
-using Muralis.Services.Interop;
 using Muralis.Services.Sources;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
-/// <summary>Issue #51 : logique pure extraite des services (diaporama, cache, compositeur,
-/// sources web).</summary>
+/// <summary>Issue #51 : logique pure extraite des services (diaporama, cache, sources web).</summary>
 public class PureLogicTests
 {
     // ---- Wallhaven ----
 
     private static MonitorInfo Monitor(int width, int height) =>
-        new("M", new RECT { Left = 0, Top = 0, Right = width, Bottom = height });
+        new("M", new PixelRect { Left = 0, Top = 0, Right = width, Bottom = height });
 
     [Fact]
     public void Wallhaven_Tags_AreAllRequired_AndExclusionsKept()
@@ -140,26 +138,4 @@ public class PureLogicTests
         Assert.Equal(["other"], evicted); // plafond toujours dépassé, mais le fond posé reste
     }
 
-    // ---- Géométrie du compositeur ----
-
-    [Fact]
-    public void Geometry_Fit_LetterboxesAndCenters()
-    {
-        // 4:3 sur 16:9 → hauteur pleine, bandes verticales.
-        Assert.Equal((240.0, 0.0, 1440.0, 1080.0), WallpaperComposer.ComputeDestRect(800, 600, 1920, 1080, DesktopWallpaperPosition.Fit));
-    }
-
-    [Fact]
-    public void Geometry_Fill_CoversAndOverflows()
-    {
-        // 4:3 sur 16:9 → largeur pleine, débord haut/bas découpé.
-        Assert.Equal((0.0, -180.0, 1920.0, 1440.0), WallpaperComposer.ComputeDestRect(800, 600, 1920, 1080, DesktopWallpaperPosition.Fill));
-    }
-
-    [Fact]
-    public void Geometry_Center_AndStretch()
-    {
-        Assert.Equal((560.0, 240.0, 800.0, 600.0), WallpaperComposer.ComputeDestRect(800, 600, 1920, 1080, DesktopWallpaperPosition.Center));
-        Assert.Equal((0.0, 0.0, 1920.0, 1080.0), WallpaperComposer.ComputeDestRect(800, 600, 1920, 1080, DesktopWallpaperPosition.Stretch));
-    }
 }

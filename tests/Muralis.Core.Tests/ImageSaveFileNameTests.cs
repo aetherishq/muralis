@@ -1,6 +1,6 @@
 using Muralis.Services;
 
-namespace Muralis.Tests;
+namespace Muralis.Core.Tests;
 
 /// <summary>Issue #48 : avec Bing, le nom d'enregistrement valait « th » (sans extension)
 /// et bloquait tout enregistrement suivant (« déjà enregistrée »).</summary>

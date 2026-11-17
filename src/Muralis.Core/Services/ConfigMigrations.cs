@@ -33,7 +33,8 @@ public static class ConfigMigrations
     };
 
     /// <summary>Applique les migrations. Retourne vrai si la config a changé (à sauver).</summary>
-    public static bool Apply(AppConfig config)
+    /// <param name="secrets">Chiffrement des clés déménagées vers le magasin central (V1.2).</param>
+    public static bool Apply(AppConfig config, ISecretProtector secrets)
     {
         bool changed = false;
 
@@ -80,7 +81,7 @@ public static class ConfigMigrations
             if (!source.IsCustom && !string.IsNullOrWhiteSpace(source.ApiKey))
             {
                 if (!config.ApiKeys.ContainsKey(source.PresetId))
-                    config.ApiKeys[source.PresetId] = ApiKeyProtector.Protect(source.ApiKey.Trim());
+                    config.ApiKeys[source.PresetId] = secrets.Protect(source.ApiKey.Trim());
                 source.ApiKey = string.Empty;
                 changed = true;
             }

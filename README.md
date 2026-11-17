@@ -79,6 +79,8 @@ dotnet build src/Muralis/Muralis.csproj
 dotnet test Muralis.slnx   # unit tests
 ```
 
+The code is split in two: `src/Muralis.Core` (`net10.0`, no Windows dependency: configuration, web sources, slideshows, cache) and `src/Muralis` (the WPF app, plus the Windows implementations of the core's desktop, image composition and secret storage interfaces). The core also builds and passes its tests on Linux.
+
 To produce the installer (requires [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
 
 ```powershell

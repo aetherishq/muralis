@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Cœur multiplateforme de Muralis (#52) : modèles, config, sources web, diaporama,
+       cache. Aucune dépendance Windows : le bureau (COM), la composition d'image (WPF) et
+       le chiffrement des secrets (DPAPI) arrivent par IDesktopBackend, IImageComposer et
+       ISecretProtector, implémentés par l'app. Vérifié sur Linux par la CI. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Muralis</RootNamespace>
+    <AssemblyName>Muralis.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Multiplateforme (netstandard) : WallhavenSourceOptions est observable. -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Muralis" />
+    <InternalsVisibleTo Include="Muralis.Tests" />
+    <InternalsVisibleTo Include="Muralis.Core.Tests" />
+  </ItemGroup>
+
+</Project>

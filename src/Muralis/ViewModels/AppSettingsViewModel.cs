@@ -34,6 +34,7 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
 
     private readonly ConfigService _configService;
     private readonly ThemeService _themeService;
+    private readonly ISecretProtector _secrets;
     private readonly Func<Window?> _windowAccessor;
     private readonly Action<string?> _applyLanguage;
     private readonly bool _initialized;
@@ -41,11 +42,13 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
     public AppSettingsViewModel(
         ConfigService configService,
         ThemeService themeService,
+        ISecretProtector secrets,
         Func<Window?> windowAccessor,
         Action<string?> applyLanguage)
     {
         _configService = configService;
         _themeService = themeService;
+        _secrets = secrets;
         _windowAccessor = windowAccessor;
         _applyLanguage = applyLanguage;
 
@@ -142,7 +145,7 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
         if (string.IsNullOrWhiteSpace(WallhavenApiKey))
             config.ApiKeys.Remove(WallhavenPresetId);
         else
-            config.ApiKeys[WallhavenPresetId] = ApiKeyProtector.Protect(WallhavenApiKey.Trim());
+            config.ApiKeys[WallhavenPresetId] = _secrets.Protect(WallhavenApiKey.Trim());
         _configService.Save(config);
     }
 
@@ -181,9 +184,9 @@ public partial class AppSettingsViewModel : ObservableObject, IDisposable
     private static string ResolveSaveDirectory(AppConfig config) =>
         config.SaveDirectory is { Length: > 0 } dir ? dir : ImageSaveService.DefaultDirectory;
 
-    private static string LoadApiKey(AppConfig config, string presetId) =>
+    private string LoadApiKey(AppConfig config, string presetId) =>
         config.ApiKeys.TryGetValue(presetId, out string? blob)
-            ? ApiKeyProtector.Unprotect(blob) ?? string.Empty
+            ? _secrets.Unprotect(blob) ?? string.Empty
             : string.Empty;
 
     /// <summary>Relit l'état réel du registre (appelé quand la page redevient visible).</summary>

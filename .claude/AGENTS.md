@@ -98,7 +98,7 @@ Une seule liste de presets, proposés dans l'UI "Ajouter une source" (catalogue 
 
 `config.json` d'un profil donné ne contient que les sources que **cet utilisateur** a choisi d'ajouter depuis ce catalogue (+ éventuelles sources custom). Rien d'autre à gérer côté code.
 
-**Clés API** : jamais en clair sur disque. `AppConfig.ApiKeys` mappe `WallpaperSourceConfig.PresetId` → blob DPAPI base64 (chiffrement/déchiffrement via `ApiKeyProtector`) — une clé **partagée par toutes les instances d'un même preset**, saisie une fois dans Settings. Les sources personnalisées, elles, gardent leur clé **par instance** dans `WallpaperSourceConfig.ApiKey` (en clair dans config.json — limite assumée, sous la responsabilité de l'utilisateur).
+**Clés API** : jamais en clair sur disque. `AppConfig.ApiKeys` mappe `WallpaperSourceConfig.PresetId` → blob DPAPI base64 (chiffrement/déchiffrement via `ISecretProtector`, implémenté par `DpapiSecretProtector` avec une entropie propre à Muralis ; les blobs antérieurs sans entropie sont ré-chiffrés au démarrage) — une clé **partagée par toutes les instances d'un même preset**, saisie une fois dans Settings. Les sources personnalisées, elles, gardent leur clé **par instance** dans `WallpaperSourceConfig.ApiKey` (en clair dans config.json — limite assumée, sous la responsabilité de l'utilisateur).
 
 ### Démarrage avec Windows
 
@@ -140,7 +140,8 @@ La checkbox "Start when Windows starts" dans les settings doit lire son état de
 
 - MVVM (CommunityToolkit.Mvvm pour `[ObservableProperty]` / `[RelayCommand]`, pas de framework MVVM plus lourd).
 - Un `ScreenSettingsViewModel` par écran détecté, liste bindée dans la fenêtre de settings.
-- Toute couche réseau (fetch de source web) doit être async, annulable (`CancellationToken`), et ne jamais bloquer l'UI thread — le slideshow tourne en fond via un `DispatcherTimer` ou un `System.Threading.Timer` qui marshalle vers l'UI thread seulement pour l'appel `IDesktopWallpaper`.
+- Toute couche réseau (fetch de source web) doit être async, annulable (`CancellationToken`), et ne jamais bloquer l'UI thread — le slideshow tourne via `TimeProvider` (`RecurringTimer`) dont les ticks sont postés sur le `SynchronizationContext` de l'UI ; la composition d'image tourne sur un thread STA dédié ; seul l'appel `IDesktopWallpaper` reste sur l'UI thread.
+- **Deux projets** (#52) : `src/Muralis.Core` (`net10.0`, **aucune dépendance Windows/WPF** — modèles, config, sources web, diaporama, cache, poses) et `src/Muralis` (app WPF : UI, et implémentations Windows des abstractions du cœur : `IDesktopBackend` → `WindowsDesktopBackend` (COM), `IImageComposer` → `WallpaperComposer` (WPF), `ISecretProtector` → `DpapiSecretProtector`). Le cœur ne produit aucun texte d'UI (ex. `FetchFailure` est traduit par l'app). Tout nouveau code sans dépendance Windows va dans le cœur ; la CI le construit et le teste sous Linux (`tests/Muralis.Core.Tests`), les tests WPF/Windows restent dans `tests/Muralis.Tests`.
 - Pas de dépendance à un framework DI lourd pour une V1 aussi petite — injection manuelle simple dans `App.xaml.cs` suffit.
 
 ## Localisation (depuis V1.1)

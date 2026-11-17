@@ -1,14 +1,13 @@
 using System.IO;
-using System.Windows.Threading;
 using Muralis.Models;
-using Muralis.Resources;
 using Muralis.Services.Sources;
 
 namespace Muralis.Services;
 
 /// <summary>
 /// Fait tourner les diaporamas : une cible par écran en mode <see cref="WallpaperMode.Slideshow"/>
-/// (ou une seule cible en mode unifié), chacune avec son propre <see cref="DispatcherTimer"/>.
+/// (ou une seule cible en mode unifié), chacune avec sa propre <see cref="RecurringTimer"/>
+/// (<see cref="TimeProvider"/>, ticks postés sur le contexte de l'UI).
 /// Deux types de source : dossier local (« LocalFolder » — cycle aléatoire sans répétition ou
 /// alphabétique selon <see cref="ScreenConfig.Shuffle"/>, dossier ré-énuméré à chaque cycle) ou
 /// source web (le <see cref="ScreenConfig.SourceType"/> référence une
@@ -28,20 +27,40 @@ public class SlideshowService
     /// <summary>Vrai quand une pose doit attendre (jeu plein écran au premier plan, #41).</summary>
     private readonly Func<bool> _shouldDefer;
 
+    private readonly TimeProvider _time;
+    private readonly SynchronizationContext? _context;
+
     /// <summary>Re-vérification des poses en attente : active seulement tant qu'il y en a.</summary>
-    private DispatcherTimer? _deferTimer;
+    private readonly RecurringTimer _deferTimer;
 
     internal static readonly TimeSpan DeferRecheckInterval = TimeSpan.FromSeconds(30);
 
+    /// <summary>Les ticks des diaporamas sont postés sur le contexte de synchronisation
+    /// courant (l'UI thread dans l'app).</summary>
     public SlideshowService(WallpaperService wallpaperService, WebWallpaperFetcher fetcher, Func<bool>? shouldDefer = null)
+        : this(wallpaperService, fetcher, shouldDefer, TimeProvider.System, SynchronizationContext.Current)
+    {
+    }
+
+    /// <summary>Temps et contexte explicites (tests : <c>FakeTimeProvider</c>, contexte null =
+    /// ticks exécutés sur place).</summary>
+    internal SlideshowService(
+        WallpaperService wallpaperService,
+        WebWallpaperFetcher fetcher,
+        Func<bool>? shouldDefer,
+        TimeProvider time,
+        SynchronizationContext? context)
     {
         _wallpaperService = wallpaperService;
         _fetcher = fetcher;
         _shouldDefer = shouldDefer ?? (() => false);
+        _time = time;
+        _context = context;
+        _deferTimer = new RecurringTimer(time, context, DeferRecheckInterval, ResumeDeferred);
     }
 
     /// <summary>
-    /// Levé après chaque pose effective d'une image (toujours sur l'UI thread). Permet à l'UI
+    /// Levé après chaque pose effective d'une image (sur le contexte de l'UI). Permet à l'UI
     /// de rafraîchir ses aperçus « fond appliqué » au bon moment — la première pose d'un
     /// diaporama web arrive bien après le <see cref="Restart"/> (téléchargement asynchrone).
     /// </summary>
@@ -49,10 +68,10 @@ public class SlideshowService
 
     /// <summary>
     /// Levé quand une source web n'a pas pu fournir d'image (réseau, API en erreur, config
-    /// invalide…), avec le nom de la source et un motif court localisé. Toujours sur l'UI
-    /// thread. Le fond courant est conservé et une nouvelle tentative aura lieu au tick suivant.
+    /// invalide…), avec le nom de la source et la cause (traduite par l'app). Sur le contexte
+    /// de l'UI. Le fond courant est conservé et une nouvelle tentative aura lieu au tick suivant.
     /// </summary>
-    public event Action<string, string>? WebFetchFailed;
+    public event Action<string, FetchFailure>? WebFetchFailed;
 
     /// <summary>
     /// Arrête les diaporamas en cours puis relance ceux décrits par la config.
@@ -104,7 +123,7 @@ public class SlideshowService
     /// <summary>
     /// Intervalle effectif d'un diaporama : plancher de sécurité (composition locale 5 s,
     /// requêtes web 60 s) et plafond <see cref="ScreenConfig.MaxSlideshowInterval"/>
-    /// (limite de <see cref="DispatcherTimer"/>, issue #44).
+    /// (historiquement la limite de <c>DispatcherTimer</c>, issue #44).
     /// </summary>
     internal static TimeSpan EffectiveInterval(TimeSpan requested, bool isWeb)
     {
@@ -144,8 +163,9 @@ public class SlideshowService
 
     public void Stop()
     {
-        _deferTimer?.Stop();
+        _deferTimer.Stop();
         _cts.Cancel();
+        _cts.Dispose(); // s1 : un CTS par Restart, libéré à l'arrêt
         foreach (var target in _targets)
             StopTarget(target);
         _targets.Clear();
@@ -173,7 +193,7 @@ public class SlideshowService
 
     private static void StopTarget(SlideshowTarget target)
     {
-        target.Timer.Stop();
+        target.Timer.Dispose();
         target.Stopped = true; // un téléchargement en vol ne posera pas son image
     }
 
@@ -216,11 +236,8 @@ public class SlideshowService
             interval = DailyRefreshInterval;
         }
 
-        var target = new SlideshowTarget(screen, apply, webSource, monitor)
-        {
-            Timer = new DispatcherTimer { Interval = interval },
-        };
-        target.Timer.Tick += (_, _) => Advance(target);
+        var target = new SlideshowTarget(screen, apply, webSource, monitor);
+        target.Timer = new RecurringTimer(_time, _context, interval, () => Advance(target));
         _targets.Add(target);
 
         Advance(target);
@@ -265,22 +282,17 @@ public class SlideshowService
             return;
 
         Log.Info("Wallpaper change deferred: a full-screen application is in the foreground");
-        if (_deferTimer is null)
-        {
-            _deferTimer = new DispatcherTimer { Interval = DeferRecheckInterval };
-            _deferTimer.Tick += (_, _) => ResumeDeferred();
-        }
         _deferTimer.Start();
     }
 
-    /// <summary>Re-vérification : si plus rien n'empêche la pose, les cibles en attente
-    /// avancent. Interne pour les tests (le DispatcherTimer n'y tourne pas).</summary>
+    /// <summary>Re-vérification (toutes les <see cref="DeferRecheckInterval"/>) : si plus rien
+    /// n'empêche la pose, les cibles en attente avancent.</summary>
     internal void ResumeDeferred()
     {
         if (ShouldDefer())
             return;
 
-        _deferTimer?.Stop();
+        _deferTimer.Stop();
         var pending = _targets.Where(t => t.Pending).ToList();
         if (pending.Count > 0)
             Log.Info($"Full-screen application left: applying {pending.Count} deferred wallpaper change(s)");
@@ -335,12 +347,12 @@ public class SlideshowService
         }
     }
 
-    /// <summary>Échecs de décodage WPF (format non reconnu, fichier tronqué) — par
-    /// opposition aux erreurs COM de pose ou de rendu, qui ne mettent pas le fichier en cause.</summary>
-    internal static bool IsUndecodableImage(Exception ex) =>
-        ex is NotSupportedException or FileFormatException or EndOfStreamException or ArgumentException;
+    /// <summary>Image indécodable (contrat de <see cref="IImageComposer"/> :
+    /// <see cref="InvalidDataException"/>) — par opposition aux erreurs de pose ou de rendu,
+    /// qui ne mettent pas le fichier en cause.</summary>
+    internal static bool IsUndecodableImage(Exception ex) => ex is InvalidDataException;
 
-    private void RaiseWebFetchFailed(string sourceName, string reason)
+    private void RaiseWebFetchFailed(string sourceName, FetchFailure reason)
     {
         try
         {
@@ -367,7 +379,7 @@ public class SlideshowService
 
             if (result.Path is not { } path)
             {
-                RaiseWebFetchFailed(target.WebSource!.Name, result.FailureReason ?? Strings.FetchFailure_Other);
+                RaiseWebFetchFailed(target.WebSource!.Name, result.Failure ?? FetchFailure.Other);
                 return;
             }
 
@@ -390,7 +402,7 @@ public class SlideshowService
                 // fichier en cause : on le garde.
                 if (IsUndecodableImage(ex))
                     _fetcher.Invalidate(path);
-                RaiseWebFetchFailed(target.WebSource!.Name, Strings.FetchFailure_InvalidImage);
+                RaiseWebFetchFailed(target.WebSource!.Name, FetchFailure.InvalidImage);
                 return;
             }
             target.LastImage = path;
@@ -405,7 +417,7 @@ public class SlideshowService
             // Filet : FetchAsync ne lève qu'en annulation, mais ce Task n'est pas observé
             // (fire-and-forget) — rien ne doit s'en échapper.
             Log.Error($"Source '{target.WebSource!.Name}': unexpected failure", ex);
-            RaiseWebFetchFailed(target.WebSource!.Name, Strings.FetchFailure_Other);
+            RaiseWebFetchFailed(target.WebSource!.Name, FetchFailure.Other);
         }
         finally
         {
@@ -487,7 +499,7 @@ public class SlideshowService
         /// <summary>Écran destinataire (null en mode unifié) — transmis au fetcher pour
         /// l'adaptation Wallhaven par écran.</summary>
         public MonitorInfo? Monitor { get; } = monitor;
-        public required DispatcherTimer Timer { get; init; }
+        public RecurringTimer Timer { get; set; } = null!; // assigné juste après la construction
         public Queue<string> Queue { get; } = new();
         public string? LastImage { get; set; }
         public bool FetchInProgress { get; set; }
