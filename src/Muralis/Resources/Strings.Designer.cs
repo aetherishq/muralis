@@ -25,6 +25,13 @@ public static class Strings
     public static string DisplayMode_Span => Get(nameof(DisplayMode_Span));
     public static string DisplayMode_Stretch => Get(nameof(DisplayMode_Stretch));
     public static string DisplayMode_Tile => Get(nameof(DisplayMode_Tile));
+    public static string FetchFailure_HttpFormat => Get(nameof(FetchFailure_HttpFormat));
+    public static string FetchFailure_InvalidImage => Get(nameof(FetchFailure_InvalidImage));
+    public static string FetchFailure_Network => Get(nameof(FetchFailure_Network));
+    public static string FetchFailure_NoResults => Get(nameof(FetchFailure_NoResults));
+    public static string FetchFailure_Other => Get(nameof(FetchFailure_Other));
+    public static string FetchFailure_Timeout => Get(nameof(FetchFailure_Timeout));
+    public static string FetchFailure_UnexpectedResponse => Get(nameof(FetchFailure_UnexpectedResponse));
     public static string Nav_Settings => Get(nameof(Nav_Settings));
     public static string Nav_Wallpapers => Get(nameof(Nav_Wallpapers));
     public static string Nav_WebSources => Get(nameof(Nav_WebSources));
@@ -74,9 +81,10 @@ public static class Strings
     public static string Status_AddedNoHeaderFormat => Get(nameof(Status_AddedNoHeaderFormat));
     public static string Status_AppliedFormat => Get(nameof(Status_AppliedFormat));
     public static string Status_AppliedUnifiedFormat => Get(nameof(Status_AppliedUnifiedFormat));
+    public static string Status_ApplyFailed => Get(nameof(Status_ApplyFailed));
     public static string Status_CustomInvalid => Get(nameof(Status_CustomInvalid));
     public static string Status_FailedFormat => Get(nameof(Status_FailedFormat));
-    public static string Status_FetchFailedFormat => Get(nameof(Status_FetchFailedFormat));
+    public static string Status_FetchFailedReasonFormat => Get(nameof(Status_FetchFailedReasonFormat));
     public static string Status_ImageAlreadySavedFormat => Get(nameof(Status_ImageAlreadySavedFormat));
     public static string Status_ImageSavedFormat => Get(nameof(Status_ImageSavedFormat));
     public static string Status_NameTakenFormat => Get(nameof(Status_NameTakenFormat));

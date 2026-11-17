@@ -18,7 +18,7 @@ public sealed class NavigationPageProvider(SettingsViewModel viewModel) : INavig
         if (!_pages.TryGetValue(pageType, out var page))
         {
             page = Activator.CreateInstance(pageType)
-                ?? throw new InvalidOperationException($"Impossible de créer la page {pageType.Name}.");
+                ?? throw new InvalidOperationException($"Cannot create page {pageType.Name}.");
             if (page is FrameworkElement element)
                 element.DataContext = viewModel;
             _pages[pageType] = page;

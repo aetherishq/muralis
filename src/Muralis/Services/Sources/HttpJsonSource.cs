@@ -42,7 +42,7 @@ public class HttpJsonSource : IWallpaperSource
 
         string? imageUrl = Navigate(document.RootElement, _config.ImageUrlJsonPath).GetString();
         if (string.IsNullOrWhiteSpace(imageUrl))
-            throw new InvalidOperationException($"Chemin JSON « {_config.ImageUrlJsonPath} » : URL vide.");
+            throw new InvalidOperationException($"JSON path '{_config.ImageUrlJsonPath}': empty URL.");
 
         // Uri(base, relative) laisse une URL absolue inchangée.
         return new Uri(new Uri(_config.RequestUrl), imageUrl);
@@ -66,16 +66,16 @@ public class HttpJsonSource : IWallpaperSource
                 if (name.Length > 0)
                 {
                     if (!current.TryGetProperty(name, out current))
-                        throw new InvalidOperationException($"Propriété JSON « {name} » absente (chemin « {path} »).");
+                        throw new InvalidOperationException($"JSON property '{name}' not found (path '{path}').");
                     rest = bracket < 0 ? string.Empty : rest[bracket..];
                     continue;
                 }
 
                 int close = rest.IndexOf(']');
                 if (close < 2 || !int.TryParse(rest[1..close], out int index))
-                    throw new InvalidOperationException($"Index de tableau invalide dans « {path} ».");
+                    throw new InvalidOperationException($"Invalid array index in '{path}'.");
                 if (current.ValueKind != JsonValueKind.Array || index >= current.GetArrayLength())
-                    throw new InvalidOperationException($"Index [{index}] hors du tableau (chemin « {path} »).");
+                    throw new InvalidOperationException($"Index [{index}] out of range (path '{path}').");
 
                 current = current[index];
                 rest = rest[(close + 1)..];

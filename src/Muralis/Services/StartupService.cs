@@ -26,7 +26,7 @@ public static class StartupService
         {
             string exePath = Process.GetCurrentProcess().MainModule?.FileName
                 ?? Environment.ProcessPath
-                ?? throw new InvalidOperationException("Chemin de l'exécutable introuvable.");
+                ?? throw new InvalidOperationException("Executable path not found.");
             key.SetValue(AppName, $"\"{exePath}\" --minimized");
         }
         else

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows.Threading;
 using Muralis.Models;
+using Muralis.Resources;
 using Muralis.Services.Sources;
 
 namespace Muralis.Services;
@@ -39,10 +40,10 @@ public class SlideshowService
 
     /// <summary>
     /// Levé quand une source web n'a pas pu fournir d'image (réseau, API en erreur, config
-    /// invalide…), avec le nom de la source. Toujours sur l'UI thread. Le fond courant est
-    /// conservé et une nouvelle tentative aura lieu au tick suivant.
+    /// invalide…), avec le nom de la source et un motif court localisé. Toujours sur l'UI
+    /// thread. Le fond courant est conservé et une nouvelle tentative aura lieu au tick suivant.
     /// </summary>
-    public event Action<string>? WebFetchFailed;
+    public event Action<string, string>? WebFetchFailed;
 
     /// <summary>
     /// Arrête les diaporamas en cours puis relance ceux décrits par la config.
@@ -85,9 +86,9 @@ public class SlideshowService
         {
             TryAddTarget(config, screen, monitor, apply);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Cible ignorée. Journalisation à brancher avec #46.
+            Log.Error($"Slideshow target ignored (screen '{screen.DeviceId}', source '{screen.SourceType}')", ex);
         }
     }
 
@@ -203,11 +204,41 @@ public class SlideshowService
         try
         {
             target.Apply(next);
-            WallpaperApplied?.Invoke();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Image illisible/corrompue : on laisse le tick suivant tenter la prochaine.
+            Log.Warn($"Slideshow: could not apply '{next}' (screen '{target.Config.DeviceId}')", ex);
+            return;
+        }
+        RaiseWallpaperApplied();
+    }
+
+    /// <summary>
+    /// Notifie une pose réussie. Hors du try de la pose : un abonné qui lève ne doit ni
+    /// faire passer une pose réussie pour un échec de source, ni casser le diaporama (#46).
+    /// </summary>
+    private void RaiseWallpaperApplied()
+    {
+        try
+        {
+            WallpaperApplied?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("WallpaperApplied handler failed", ex);
+        }
+    }
+
+    private void RaiseWebFetchFailed(string sourceName, string reason)
+    {
+        try
+        {
+            WebFetchFailed?.Invoke(sourceName, reason);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("WebFetchFailed handler failed", ex);
         }
     }
 
@@ -220,13 +251,13 @@ public class SlideshowService
         try
         {
             // Pas de ConfigureAwait(false) : Apply (imaging WPF + COM) doit reprendre sur l'UI thread.
-            string? path = await _fetcher.FetchAsync(target.WebSource!, target.Monitor, ct);
+            var result = await _fetcher.FetchAsync(target.WebSource!, target.Monitor, ct);
             if (ct.IsCancellationRequested)
                 return;
 
-            if (path is null)
+            if (result.Path is not { } path)
             {
-                WebFetchFailed?.Invoke(target.WebSource!.Name);
+                RaiseWebFetchFailed(target.WebSource!.Name, result.FailureReason ?? Strings.FetchFailure_Other);
                 return;
             }
 
@@ -236,18 +267,30 @@ public class SlideshowService
             if (path == target.LastImage)
                 return;
 
-            target.Apply(path);
+            try
+            {
+                target.Apply(path);
+            }
+            catch (Exception ex)
+            {
+                // Image téléchargée mais inutilisable : fond courant conservé, retentative au prochain tick.
+                Log.Warn($"Source '{target.WebSource!.Name}': could not apply '{path}'", ex);
+                RaiseWebFetchFailed(target.WebSource!.Name, Strings.FetchFailure_InvalidImage);
+                return;
+            }
             target.LastImage = path;
-            WallpaperApplied?.Invoke();
+            RaiseWallpaperApplied();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             // Arrêt/redémarrage du diaporama : silencieux.
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Échec d'application : fond courant conservé, retentative au prochain tick.
-            WebFetchFailed?.Invoke(target.WebSource!.Name);
+            // Filet : FetchAsync ne lève qu'en annulation, mais ce Task n'est pas observé
+            // (fire-and-forget) — rien ne doit s'en échapper.
+            Log.Error($"Source '{target.WebSource!.Name}': unexpected failure", ex);
+            RaiseWebFetchFailed(target.WebSource!.Name, Strings.FetchFailure_Other);
         }
         finally
         {
@@ -279,9 +322,11 @@ public class SlideshowService
         {
             files = ImageFiles.Enumerate(target.Config.SourcePath).ToList();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return; // Dossier supprimé/inaccessible : cycle vide, on retentera au prochain tick.
+            // Dossier supprimé/inaccessible : cycle vide, on retentera au prochain tick.
+            Log.Warn($"Slideshow: cannot list folder '{target.Config.SourcePath}'", ex);
+            return;
         }
 
         if (target.Config.Shuffle)

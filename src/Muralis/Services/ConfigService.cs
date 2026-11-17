@@ -125,7 +125,10 @@ public class ConfigService
         if (TryReadFile(ConfigPath, out var config, out int? version))
         {
             if (config!.Version > AppConfig.CurrentVersion)
+            {
+                Log.Warn($"config.json is from a newer version ({config.Version} > {AppConfig.CurrentVersion}): read-only, never rewritten");
                 _readOnly = true;
+            }
             return config;
         }
 
@@ -133,24 +136,28 @@ public class ConfigService
         {
             // Écrite par une version plus récente (valeur d'enum inconnue…) : illisible ici,
             // mais légitime. On ne touche à rien et on tourne sur une config vide.
+            Log.Warn($"config.json from newer version {version} cannot be read by this build: running on defaults, file left untouched");
             _readOnly = true;
             return new AppConfig();
         }
 
         // Réellement corrompue : on la préserve avant tout.
-        if (!TryQuarantine())
+        if (!TryQuarantine(out string? quarantined))
         {
+            Log.Error("config.json is unreadable and could not be quarantined: running on defaults, file left untouched");
             _readOnly = true; // impossible de la mettre à l'abri : ne surtout pas l'écraser
             return new AppConfig();
         }
 
         if (TryReadFile(BackupPath, out var restored, out _))
         {
+            Log.Warn($"config.json was unreadable: moved to '{quarantined}', restored from config.json.bak");
             try { File.Copy(BackupPath, ConfigPath, overwrite: false); }
             catch (Exception) { /* sera réécrite à la prochaine sauvegarde */ }
             return restored!;
         }
 
+        Log.Warn($"config.json was unreadable: moved to '{quarantined}', no usable backup — starting from defaults");
         return new AppConfig();
     }
 
@@ -205,16 +212,18 @@ public class ConfigService
     private static AppConfig? Deserialize(string json) =>
         JsonSerializer.Deserialize<AppConfig>(json, JsonOptions);
 
-    private bool TryQuarantine()
+    private bool TryQuarantine(out string? target)
     {
-        string target = Path.Combine(DataDirectory, $"config.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        target = Path.Combine(DataDirectory, $"config.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}.json");
         try
         {
             File.Move(ConfigPath, target, overwrite: false);
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Warn($"Could not quarantine config.json to '{target}'", ex);
+            target = null;
             return false;
         }
     }

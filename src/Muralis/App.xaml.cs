@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
@@ -46,6 +47,11 @@ public partial class App : Application
         // Injection manuelle des services (pas de conteneur DI pour une V1, cf. AGENTS.md).
         var configService = new ConfigService();
         _configService = configService;
+
+        // Journal + filets globaux en premier : tout ce qui suit peut lever (issue #46).
+        Log.Initialize(Path.Combine(configService.DataDirectory, "logs"));
+        Log.Info($"Muralis {typeof(App).Assembly.GetName().Version} starting (args: {string.Join(' ', e.Args)})");
+        RegisterGlobalExceptionHandlers();
         _screenService = new ScreenService();
         var composer = new WallpaperComposer(configService);
         _wallpaperService = new WallpaperService(composer);
@@ -95,6 +101,27 @@ public partial class App : Application
         bool minimized = e.Args.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase));
         if (!minimized)
             ShowSettings();
+    }
+
+    /// <summary>
+    /// Filets de sécurité : toute exception non gérée est journalisée. Sur l'UI thread, elle
+    /// est marquée gérée — une app tray qui meurt sans bruit (le fond cesse simplement de
+    /// changer) est pire qu'une action ratée ; la cause est dans le journal.
+    /// </summary>
+    private void RegisterGlobalExceptionHandlers()
+    {
+        DispatcherUnhandledException += (_, args) =>
+        {
+            Log.Error("Unhandled exception on the UI thread", args.Exception);
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            Log.Error($"Unhandled exception (terminating: {args.IsTerminating})", args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Log.Error("Unobserved task exception", args.Exception);
+            args.SetObserved();
+        };
     }
 
     /// <summary>(Re)construit le graphe de ViewModels — leurs libellés capturent la culture courante.</summary>
@@ -220,6 +247,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            Log.Warn($"Save current wallpaper failed (screen '{deviceId}')", ex);
             message = string.Format(Strings.Status_FailedFormat, ex.Message);
         }
         _tray?.ShowNotification("Muralis", message);
@@ -245,6 +273,7 @@ public partial class App : Application
     /// <summary>Arrêt volontaire : dispose le tray puis ferme réellement l'app.</summary>
     private void ExitApp()
     {
+        Log.Info("Exiting (tray menu)");
         IsExiting = true;
         _slideshowService?.Stop();
         _tray?.Dispose();

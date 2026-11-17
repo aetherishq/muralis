@@ -57,7 +57,7 @@ public class WallpaperComposer
             rendered = Render(source, targetWidth, targetHeight, mode);
             if (IsEmptyRender(rendered))
                 throw new InvalidOperationException(
-                    $"Rendu vide pour '{sourcePath}' ({targetWidth}x{targetHeight}) : RenderTargetBitmap n'a rien produit.");
+                    $"Empty render for '{sourcePath}' ({targetWidth}x{targetHeight}): RenderTargetBitmap produced nothing.");
         }
         SavePng(rendered, outputPath);
         return outputPath;
