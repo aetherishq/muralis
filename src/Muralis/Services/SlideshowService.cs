@@ -230,6 +230,11 @@ public class SlideshowService
         }
     }
 
+    /// <summary>Échecs de décodage WPF (format non reconnu, fichier tronqué) — par
+    /// opposition aux erreurs COM de pose ou de rendu, qui ne mettent pas le fichier en cause.</summary>
+    internal static bool IsUndecodableImage(Exception ex) =>
+        ex is NotSupportedException or FileFormatException or EndOfStreamException or ArgumentException;
+
     private void RaiseWebFetchFailed(string sourceName, string reason)
     {
         try
@@ -275,6 +280,11 @@ public class SlideshowService
             {
                 // Image téléchargée mais inutilisable : fond courant conservé, retentative au prochain tick.
                 Log.Warn($"Source '{target.WebSource!.Name}': could not apply '{path}'", ex);
+                // Fichier indécodable : l'oublier, sinon le cache le resservirait (même URL)
+                // indéfiniment (#45). Une erreur COM ou un rendu vide (#35) ne met pas le
+                // fichier en cause : on le garde.
+                if (IsUndecodableImage(ex))
+                    _fetcher.Invalidate(path);
                 RaiseWebFetchFailed(target.WebSource!.Name, Strings.FetchFailure_InvalidImage);
                 return;
             }
