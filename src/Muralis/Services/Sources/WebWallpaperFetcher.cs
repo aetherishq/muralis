@@ -185,9 +185,22 @@ public class WebWallpaperFetcher
         }
 
         lock (_urlByPath)
+        {
             _urlByPath[path] = imageUrl;
+            // Borne (#48) : une entrée par image servie, sans fin sur une app qui tourne des
+            // semaines. Les fichiers purgés du cache n'ont plus besoin de leur URL. (Après un
+            // redémarrage, le premier fetch ré-enregistre l'URL même si le fichier est en cache.)
+            if (_urlByPath.Count > MaxTrackedUrls)
+            {
+                foreach (string stale in _urlByPath.Keys.Where(p => !File.Exists(p)).ToList())
+                    _urlByPath.Remove(stale);
+            }
+        }
         return path;
     }
+
+    /// <summary>Seuil de nettoyage de <see cref="_urlByPath"/>.</summary>
+    private const int MaxTrackedUrls = 256;
 
     /// <summary>URL d'origine d'un fichier du cache (null si inconnue — fichier servi lors
     /// d'une session précédente).</summary>
